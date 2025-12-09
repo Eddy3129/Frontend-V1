@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ConnectButton } from '@/components/wallet/ConnectButton'
 import { cn } from '@/lib/utils'
-import { Heart, LayoutDashboard, Vote, Users, Menu } from 'lucide-react'
+import { Heart, LayoutDashboard, Vote, Users, Menu, Github } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -64,6 +64,14 @@ export function Navigation() {
             <ConnectButton />
           </div>
 
+          <Link
+            href="https://github.com/GIVE-Labs/give-protocol-v1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-md border border-slate-400 hover:bg-slate-400 transition-colors duration-200"
+          >
+            <Github className="h-5 w-5 text-slate-400 hover:text-white" />
+          </Link>
           <ThemeToggle />
 
           {/* Mobile Menu */}
