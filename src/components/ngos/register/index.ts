@@ -1,0 +1,5 @@
+export { StepBasicInfo } from './StepBasicInfo'
+export { StepContact } from './StepContact'
+export { StepRegistration } from './StepRegistration'
+export { StepDocuments } from './StepDocuments'
+export { StepReview } from './StepReview'

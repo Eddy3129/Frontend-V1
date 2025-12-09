@@ -1,0 +1,451 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Theme configuration for Tailwind v4 */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-serif);
+  --font-mono: var(--font-geist-mono);
+
+  /* Custom Semantic Colors */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+}
+
+:root {
+  /* --- 1. Core Palette & Semantic Variables --- */
+
+  /* Backgrounds */
+  --bg-primary: #fefbf6; /* Off-white/Cream */
+  --bg-secondary: #fefbf6; /* Same as primary for seamless look */
+  --bg-tertiary: #ffffff; /* Card/Surface Background (White) */
+
+  /* Text */
+  --text-primary: #2c3930; /* High Contrast (Deep Green/Gray) */
+  --text-secondary: #0d9488; /* Medium Contrast (Teal) */
+  --text-muted: #8cb9bd; /* Low Contrast (Muted Teal) */
+  --text-on-brand: #fefbf6; /* Text on primary buttons */
+
+  /* Borders */
+  --border-subtle: #e5e7eb;
+  --border-strong: #d1d5db;
+
+  /* Brand Gradients */
+  --brand-gradient: linear-gradient(135deg, #0d9488 0%, #ecb159 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #0f766e 0%, #d9a048 100%);
+
+  /* Page Background Gradient (Subtle) */
+  --bg-gradient-page: radial-gradient(
+    circle at bottom right,
+    rgba(13, 148, 136, 0.2) 0%,
+    #fefbf6 60%
+  );
+
+  /* --- 2. Shadcn/Tailwind Mappings --- */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+
+  --card: var(--bg-tertiary);
+  --card-foreground: var(--text-primary);
+
+  --popover: var(--bg-tertiary);
+  --popover-foreground: var(--text-primary);
+
+  --primary: #0d9488;
+  --primary-foreground: #fefbf6;
+
+  --secondary: #8cb9bd;
+  --secondary-foreground: #fefbf6;
+
+  --muted: #f3f4f6;
+  --muted-foreground: #12636a;
+
+  --accent: #ecb159;
+  --accent-foreground: #2c3930;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: #0d9488;
+
+  --radius: 0.75rem;
+
+  /* Fonts */
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-messy: 'Reenie Beanie', cursive;
+}
+
+.dark {
+  /* --- Dark Mode Overrides --- */
+
+  /* Backgrounds */
+  --bg-primary: #2c3930; /* Deep Green */
+  --bg-secondary: #2c3930; /* Same as primary */
+  --bg-tertiary: #3f4f44; /* Lighter Green for cards */
+
+  /* Text */
+  --text-primary: #dcd7c9; /* Beige */
+  --text-secondary: #a27b5c; /* Gold/Brown */
+  --text-muted: #a27b5c; /* Muted Gold */
+  --text-on-brand: #2c3930;
+
+  /* Borders */
+  --border-subtle: #3f4f44;
+  --border-strong: #a27b5c;
+
+  /* Brand Gradients */
+  --brand-gradient: linear-gradient(135deg, #a27b5c 0%, #dcd7c9 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #8f6a4e 0%, #c5c0b2 100%);
+
+  /* Page Background Gradient (Deep Night) */
+  --bg-gradient-page: radial-gradient(circle at 50% -20%, #3f4f44 0%, #2c3930 60%, #1a231d 100%);
+
+  /* Shadcn Mappings */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+
+  --card: var(--bg-tertiary);
+  --card-foreground: var(--text-primary);
+
+  --popover: var(--bg-tertiary);
+  --popover-foreground: var(--text-primary);
+
+  --primary: #a27b5c;
+  --primary-foreground: #2c3930;
+
+  --secondary: #3f4f44;
+  --secondary-foreground: #dcd7c9;
+
+  --muted: #3f4f44;
+  --muted-foreground: #a27b5c;
+
+  --accent: #dcd7c9;
+  --accent-foreground: #2c3930;
+
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: #a27b5c;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--bg-gradient-page);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    font-family: var(--font-serif);
+    min-height: 100vh;
+    @apply transition-colors duration-300;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+  }
+}
+
+@layer utilities {
+  .font-messy {
+    font-family: var(--font-messy), cursive;
+  }
+
+  .font-serif {
+    font-family: var(--font-serif), serif;
+  }
+
+  .font-montserrat {
+    font-family: var(--font-montserrat), sans-serif;
+  }
+
+  .font-handwritten {
+    font-family: var(--font-handwritten), cursive;
+  }
+
+  /* ===== STANDARDIZED BUTTONS ===== */
+  /* Primary Button - Dark emerald with white text */
+  .btn-primary {
+    background: var(--brand-gradient);
+    color: var(--text-on-brand);
+    @apply rounded-xl px-8 py-4 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform active:scale-95 border-none;
+  }
+  .btn-primary:hover {
+    background: var(--brand-gradient-hover);
+  }
+
+  /* Secondary/Outline Button */
+  .btn-secondary {
+    @apply border-2 border-primary text-primary bg-transparent hover:bg-secondary/50 rounded-xl px-8 py-4 text-base font-bold transition-all duration-300;
+  }
+
+  /* Ghost Button - Subtle */
+  .btn-ghost {
+    @apply text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl px-6 py-3 font-bold transition-all duration-300;
+  }
+
+  /* Button on dark background */
+  .btn-on-dark {
+    @apply bg-emerald-400 hover:bg-emerald-300 text-emerald-950 rounded-xl px-8 py-4 text-base font-bold shadow-md hover:shadow-lg transition-all duration-300;
+  }
+
+  /* Small button variant */
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+
+  /* Large button variant */
+  .btn-lg {
+    @apply px-10 py-5 text-lg;
+  }
+
+  /* ===== BACKGROUND UTILITIES ===== */
+  .bg-section-primary {
+    background-color: var(--bg-primary);
+  }
+  .bg-section-secondary {
+    background-color: var(--bg-secondary);
+  }
+
+  /* ===== STANDARDIZED CARDS ===== */
+  /* Default card */
+  .card-default {
+    @apply bg-card text-card-foreground border border-border rounded-3xl shadow-sm;
+  }
+
+  /* Hover card */
+  .card-hover {
+    @apply bg-card text-card-foreground border border-border rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1;
+  }
+
+  /* Highlighted card - light green background for empty states */
+  .card-highlight {
+    @apply bg-secondary/50 border border-border rounded-3xl;
+  }
+
+  /* Stat card - WHITE background with emerald accents (readable!) */
+  .stat-card {
+    @apply bg-card border border-border rounded-2xl shadow-sm;
+  }
+
+  /* ===== ICON BOXES ===== */
+  .icon-box-brand {
+    @apply w-10 h-10 bg-secondary rounded-xl flex items-center justify-center text-primary;
+  }
+
+  .icon-box-brand-xl {
+    @apply w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center text-primary;
+  }
+
+  /* ===== BRAND BUTTON ===== */
+  .btn-brand {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 py-3 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-300;
+  }
+
+  /* ===== STANDARDIZED BACKGROUNDS ===== */
+  /* Page background */
+  .bg-page {
+    @apply bg-transparent;
+  }
+
+  /* Dark section background (like footer) */
+  .bg-dark-section {
+    @apply bg-[#04382b] text-white;
+  }
+
+  /* Light section background */
+  .bg-light-section {
+    @apply bg-card;
+  }
+
+  /* Muted section */
+  .bg-muted-section {
+    @apply bg-muted;
+  }
+
+  /* ===== STANDARDIZED TEXT ===== */
+  /* Heading on light bg */
+  .text-heading {
+    @apply text-foreground font-serif font-bold;
+  }
+
+  /* Body text on light bg */
+  .text-body {
+    @apply text-foreground;
+  }
+
+  /* Muted text - still dark enough to read */
+  .text-muted-custom {
+    @apply text-muted-foreground;
+  }
+
+  /* Text on dark background */
+  .text-on-dark {
+    @apply text-emerald-50;
+  }
+
+  .text-on-dark-muted {
+    @apply text-emerald-200/80;
+  }
+
+  /* ===== STANDARDIZED INPUTS ===== */
+  .input-default {
+    @apply bg-background border border-input rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all;
+  }
+
+  .input-lg {
+    @apply px-5 py-4 text-base;
+  }
+
+  /* ===== STANDARDIZED BADGES ===== */
+  .badge-default {
+    @apply bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide;
+  }
+
+  .badge-accent {
+    @apply bg-yellow-100 text-yellow-800 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide;
+  }
+
+  /* ===== PROGRESS BAR ===== */
+  .progress-track {
+    @apply w-full bg-secondary h-2 rounded-full overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply bg-yellow-500 h-full rounded-full;
+  }
+
+  /* Real Paper Effect */
+  .real-paper {
+    background-color: #f4ebd0;
+    background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+    box-shadow:
+      inset 0 0 30px rgba(0, 0, 0, 0.05),
+      1px 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Inner Book Icons */
+  .inner-book-icon {
+    filter: drop-shadow(2px 4px 0px rgba(0, 0, 0, 0.1));
+  }
+
+  /* 3D Perspective for Book */
+  .book-container {
+    perspective: 1500px;
+    transform-style: preserve-3d;
+  }
+
+  .book-page {
+    transform-style: preserve-3d;
+    transform-origin: left center;
+    transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+  }
+
+  .page-front,
+  .page-back {
+    backface-visibility: hidden;
+  }
+
+  .page-back {
+    transform: rotateY(180deg);
+    background-color: #e6dfcd;
+    background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+  }
+
+  /* Gradient text */
+  .text-gradient-give {
+    background: linear-gradient(to right, #064e3b, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Gradient background */
+  .gradient-give {
+    @apply bg-linear-to-r from-emerald-800 to-emerald-600;
+  }
+
+  /* Glow effect */
+  .glow-give {
+    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3);
+  }
+
+  /* Empty state styling */
+  .empty-state {
+    @apply py-16 text-center space-y-6;
+  }
+
+  /* Custom Gradients & Glows */
+  .text-gradient-hero {
+    @apply bg-clip-text text-transparent bg-linear-to-r from-[#0d9488] to-[#ECB159] dark:from-[#DCD7C9] dark:to-[#A27B5C];
+  }
+
+  .icon-glow {
+    @apply text-primary transition-all duration-300 dark:text-[#DCD7C9] dark:drop-shadow-[0_0_8px_rgba(220,215,201,0.5)];
+  }
+}
+
+/* Animations */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
+
+@keyframes float-messy {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+}
+
+.float-icon {
+  animation: float-messy 5s ease-in-out infinite;
+}
