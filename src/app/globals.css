@@ -817,3 +817,41 @@
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
 }
+
+/* ===== CAMPAIGN STATUS BADGES ===== */
+.status-submitted {
+  @apply bg-amber-500/10 text-amber-600 border-amber-500/20;
+}
+
+.status-approved {
+  @apply bg-blue-500/10 text-blue-600 border-blue-500/20;
+}
+
+.status-rejected {
+  @apply bg-red-500/10 text-red-600 border-red-500/20;
+}
+
+.status-active {
+  @apply bg-emerald-500/10 text-emerald-600 border-emerald-500/20;
+}
+
+.status-paused {
+  @apply bg-orange-500/10 text-orange-600 border-orange-500/20;
+}
+
+.status-cancelled {
+  @apply bg-gray-500/10 text-gray-600 border-gray-500/20;
+}
+
+.status-completed {
+  @apply bg-purple-500/10 text-purple-600 border-purple-500/20;
+}
+
+/* ===== CAMPAIGN PROGRESS INDICATORS ===== */
+.progress-teal {
+  @apply h-3 bg-teal-100;
+}
+
+.progress-indicator-teal {
+  @apply bg-teal-500;
+}
