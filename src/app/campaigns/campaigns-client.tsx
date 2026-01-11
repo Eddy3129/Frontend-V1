@@ -128,13 +128,13 @@ export function CampaignsClient() {
         </div>
 
         {/* Summary Stats - Top Right */}
-        <div className="flex gap-6">
-          <div className="text-right">
+        <div className="flex gap-4">
+          <div className="text-right border border-border rounded-lg px-4 py-3 bg-card/50">
             <p className="text-sm text-muted-foreground">Total Staked</p>
             <p className="text-2xl font-bold">${totalStaked.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">across all campaigns</p>
           </div>
-          <div className="text-right">
+          <div className="text-right border border-border rounded-lg px-4 py-3 bg-card/50">
             <p className="text-sm text-muted-foreground">Active Campaigns</p>
             <p className="text-2xl font-bold">{activeCampaignCount}</p>
             <p className="text-xs text-muted-foreground">live now</p>

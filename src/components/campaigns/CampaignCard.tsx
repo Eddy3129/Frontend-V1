@@ -197,14 +197,7 @@ export function CampaignCard({
       </div>
 
       {/* Gradient overlay - Always visible, stronger at bottom for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-      {/* Status Badge - Top right, always visible */}
-      <div className="absolute top-4 right-4 z-20">
-        <Badge variant="outline" className={`${statusColors[status]} backdrop-blur-sm shadow-sm`}>
-          {statusLabels[status]}
-        </Badge>
-      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
       {/* Main Card Content - Always visible */}
       <div
