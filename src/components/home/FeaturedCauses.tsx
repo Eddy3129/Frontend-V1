@@ -164,34 +164,22 @@ export function FeaturedCauses() {
 
           {/* CTAs */}
           <div
-            className={`flex flex-col sm:flex-row gap-3 transition-all duration-[2100ms] ease-out ${
+            className={`flex flex-col sm:flex-row gap-3 justify-center transition-all duration-[2100ms] ease-out ${
               isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
             }`}
             style={{ transitionDelay: '1800ms' }}
           >
-            <Link href={`/campaigns/${campaign.id}`} className="flex-1">
+            <Link href={`/campaigns/${campaign.id}`}>
               <div className="group relative">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-primary rounded-xl opacity-40 blur-lg group-hover:opacity-70 transition-all duration-500 animate-gradient bg-[length:200%_100%]" />
                 <Button
                   size="lg"
-                  className="w-full relative bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl px-6 py-5 text-base font-bold shadow-lg transition-all duration-300 group-hover:scale-[1.02]"
+                  className="relative bg-brand-gradient text-primary-foreground rounded-xl px-12 py-5 text-base font-bold shadow-lg transition-all duration-300 group-hover:scale-[1.02]"
                 >
                   <span className="flex items-center justify-center gap-2">
                     Support This Cause
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </span>
-                </Button>
-              </div>
-            </Link>
-            <Link href="/campaigns">
-              <div className="group relative">
-                <div className="absolute -inset-px bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="relative border-2 border-border bg-background/80 backdrop-blur-sm rounded-xl px-6 py-5 text-base font-bold transition-all duration-300 group-hover:scale-[1.02]"
-                >
-                  All Campaigns
                 </Button>
               </div>
             </Link>

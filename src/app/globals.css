@@ -59,13 +59,17 @@
   --border-strong: #d1d5db;
 
   /* Brand Gradients */
-  --brand-gradient: linear-gradient(135deg, #0d9488 0%, #ecb159 100%);
-  --brand-gradient-hover: linear-gradient(135deg, #0f766e 0%, #d9a048 100%);
+  --brand-gradient:
+    radial-gradient(120% 120% at 20% 20%, rgba(255, 255, 255, 0.25), transparent 40%),
+    linear-gradient(135deg, #3fa99b 0%, #62c0a7 40%, #f0c27b 100%);
+  --brand-gradient-hover:
+    radial-gradient(120% 120% at 20% 20%, rgba(255, 255, 255, 0.35), transparent 40%),
+    linear-gradient(135deg, #3fa99b 0%, #62c0a7 40%, #f0c27b 100%);
 
   /* Page Background Gradient (Subtle) */
   --bg-gradient-page: radial-gradient(
     circle at bottom right,
-    rgba(13, 148, 136, 0.2) 0%,
+    rgba(63, 169, 155, 0.2) 0%,
     #fefbf6 60%
   );
 
@@ -79,7 +83,7 @@
   --popover: var(--bg-tertiary);
   --popover-foreground: var(--text-primary);
 
-  --primary: #0d9488;
+  --primary: #3fa99b;
   --primary-foreground: #fefbf6;
 
   --secondary: #8cb9bd;
@@ -88,7 +92,7 @@
   --muted: #f3f4f6;
   --muted-foreground: #12636a;
 
-  --accent: #ecb159;
+  --accent: #f0c27b;
   --accent-foreground: #2c3930;
 
   --destructive: #ef4444;
@@ -96,7 +100,7 @@
 
   --border: var(--border-subtle);
   --input: var(--border-subtle);
-  --ring: #0d9488;
+  --ring: #3fa99b;
 
   --radius: 0.75rem;
 
@@ -115,17 +119,21 @@
 
   /* Text */
   --text-primary: #dcd7c9; /* Beige */
-  --text-secondary: #a27b5c; /* Gold/Brown */
-  --text-muted: #a27b5c; /* Muted Gold */
+  --text-secondary: #eec07b; /* Luminous Gold (High Contrast) */
+  --text-muted: #d4a373; /* Muted Gold (Readable) */
   --text-on-brand: #2c3930;
 
   /* Borders */
   --border-subtle: #3f4f44;
-  --border-strong: #a27b5c;
+  --border-strong: #eec07b;
 
   /* Brand Gradients */
-  --brand-gradient: linear-gradient(135deg, #a27b5c 0%, #dcd7c9 100%);
-  --brand-gradient-hover: linear-gradient(135deg, #8f6a4e 0%, #c5c0b2 100%);
+  --brand-gradient:
+    radial-gradient(120% 120% at 20% 20%, rgba(255, 255, 255, 0.15), transparent 40%),
+    linear-gradient(135deg, #a27b5c 0%, #eec07b 40%, #f3dca5 70%, #d4a373 100%);
+  --brand-gradient-hover:
+    radial-gradient(120% 120% at 20% 20%, rgba(255, 255, 255, 0.25), transparent 40%),
+    linear-gradient(135deg, #a27b5c 0%, #eec07b 40%, #f3dca5 70%, #d4a373 100%);
 
   /* Page Background Gradient (Deep Night) */
   --bg-gradient-page: radial-gradient(circle at 50% -20%, #3f4f44 0%, #2c3930 60%, #1a231d 100%);
@@ -140,21 +148,21 @@
   --popover: var(--bg-tertiary);
   --popover-foreground: var(--text-primary);
 
-  --primary: #a27b5c;
+  --primary: #eec07b;
   --primary-foreground: #2c3930;
 
   --secondary: #3f4f44;
   --secondary-foreground: #dcd7c9;
 
   --muted: #3f4f44;
-  --muted-foreground: #a27b5c;
+  --muted-foreground: #d4a373;
 
   --accent: #dcd7c9;
   --accent-foreground: #2c3930;
 
   --border: var(--border-subtle);
   --input: var(--border-subtle);
-  --ring: #a27b5c;
+  --ring: #eec07b;
 }
 
 @layer base {
@@ -184,6 +192,18 @@
 }
 
 @layer utilities {
+  .bg-brand-gradient {
+    background: var(--brand-gradient);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  .bg-brand-gradient:hover {
+    background: var(--brand-gradient-hover);
+    box-shadow:
+      0 15px 30px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
   .font-messy {
     font-family: var(--font-messy), cursive;
   }
@@ -208,11 +228,15 @@
   /* Primary Button - Dark emerald with white text */
   .btn-primary {
     background: var(--brand-gradient);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
     color: var(--text-on-brand);
-    @apply rounded-xl px-8 py-4 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 transform active:scale-95 border-none;
+    @apply rounded-xl px-8 py-4 text-base font-bold transition-all duration-300 transform active:scale-95 border-none;
   }
   .btn-primary:hover {
     background: var(--brand-gradient-hover);
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
 
   /* Secondary/Outline Button */
@@ -280,7 +304,15 @@
 
   /* ===== BRAND BUTTON ===== */
   .btn-brand {
-    @apply bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 py-3 text-base font-semibold shadow-md hover:shadow-lg transition-all duration-300;
+    background: var(--brand-gradient);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    @apply transition-all duration-300 text-primary-foreground rounded-xl px-6 py-3 text-base font-semibold;
+  }
+  .btn-brand:hover {
+    background: var(--brand-gradient-hover);
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
   }
 
   /* ===== STANDARDIZED BACKGROUNDS ===== */
@@ -403,7 +435,8 @@
 
   /* Gradient background */
   .gradient-give {
-    @apply bg-linear-to-r from-emerald-800 to-emerald-600;
+    background: var(--brand-gradient);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
   }
 
   /* Glow effect */

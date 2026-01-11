@@ -26,7 +26,7 @@ export function Navigation() {
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-4 group">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-md transition-transform group-hover:scale-105">
+          <div className="w-10 h-10 bg-brand-gradient rounded-lg flex items-center justify-center text-primary-foreground shadow-md transition-transform group-hover:scale-105">
             <Heart className="w-6 h-6 fill-current" />
           </div>
           <span className="text-foreground font-serif font-bold text-2xl tracking-tight">

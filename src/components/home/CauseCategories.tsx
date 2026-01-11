@@ -137,7 +137,7 @@ export function CauseCategories() {
 
         <div className="pl-8 md:pl-10">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif font-black text-foreground tracking-tight">
-            Support Causes you care about.
+            Support Causes you truly care about.
             <span className="block h-1 w-40 md:w-56 bg-gradient-to-r from-primary to-accent mt-3 rounded-full" />
           </h2>
           <p className="text-base md:text-lg text-muted-foreground mt-3 max-w-xl leading-relaxed">

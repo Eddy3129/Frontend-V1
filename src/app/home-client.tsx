@@ -27,7 +27,7 @@ export function HomeClient() {
       <DonationsMarquee />
 
       {/* Hero Section */}
-      <section className="snap-section-full flex flex-col justify-center relative overflow-hidden">
+      <section className="snap-section-full flex flex-col justify-center relative overflow-hidden pb-[10vh]">
         {/* Background elements */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
@@ -81,7 +81,7 @@ export function HomeClient() {
                     <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-primary rounded-2xl opacity-50 blur-lg group-hover:opacity-80 group-hover:blur-xl transition-all duration-500 animate-gradient bg-[length:200%_100%]" />
                     <Button
                       size="lg"
-                      className="relative bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground rounded-2xl px-10 py-7 text-base font-bold shadow-2xl transition-all duration-500 group-hover:scale-[1.02] overflow-hidden"
+                      className="relative bg-brand-gradient text-primary-foreground rounded-2xl px-10 py-7 text-base font-bold shadow-2xl transition-all duration-500 group-hover:scale-[1.02] overflow-hidden"
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         Start Staking
@@ -118,14 +118,14 @@ export function HomeClient() {
         </div>
       </section>
 
-      {/* Categories */}
-      <CauseCategories />
+      {/* Featured Causes */}
+      <FeaturedCauses />
 
       {/* How It Works */}
       <ArchitectureFlow />
 
-      {/* Featured Causes */}
-      <FeaturedCauses />
+      {/* Categories */}
+      <CauseCategories />
 
       {/* Final CTA Section */}
       <section className="snap-section py-20 relative overflow-hidden flex flex-col justify-center">
@@ -134,7 +134,6 @@ export function HomeClient() {
         <div className="max-w-3xl mx-auto px-6 text-center relative">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-8">
             <Lock className="w-4 h-4" />
-            <span>Your Principal Never Leaves</span>
           </div>
 
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-foreground mb-6">
