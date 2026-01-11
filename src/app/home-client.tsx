@@ -1,252 +1,200 @@
 'use client'
 
-import { useAccount } from 'wagmi'
+import dynamic from 'next/dynamic'
+import { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Users, Zap, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Sparkles, Lock, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
-import { FlipBook } from '@/components/home/FlipBook'
-import { CampaignCard } from '@/components/campaigns/CampaignCard'
-import { useCampaign } from '@/hooks/useCampaign'
+import { DonationsMarquee } from '@/components/home/DonationsMarquee'
+import { CauseCategories } from '@/components/home/CauseCategories'
+import { ArchitectureFlow } from '@/components/home/ArchitectureFlow'
+import { FeaturedCauses } from '@/components/home/FeaturedCauses'
 
-// Mock featured campaigns for display
-const MOCK_CAMPAIGNS = [
-  {
-    id: 1,
-    title: 'Trees for Brazil',
-    organizer: 'GreenEarth',
-    target: 500000,
-    current: 342000,
-    donors: 1240,
-    image:
-      'https://images.unsplash.com/photo-1511497584788-876760111969?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    tags: ['Nature'],
-  },
-  {
-    id: 2,
-    title: 'Clean H2O Project',
-    organizer: 'WaterWorks',
-    target: 150000,
-    current: 89000,
-    donors: 850,
-    image:
-      'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    tags: ['Water'],
-  },
-  {
-    id: 3,
-    title: 'Tech for Kids',
-    organizer: 'CodeFree',
-    target: 200000,
-    current: 12000,
-    donors: 120,
-    image:
-      'https://images.unsplash.com/photo-1509062522246-3755977927d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    tags: ['Education'],
-  },
-]
-
-// Mock Campaign Card for homepage (when no on-chain data)
-function MockCampaignCard({ campaign }: { campaign: (typeof MOCK_CAMPAIGNS)[0] }) {
-  const progress = (campaign.current / campaign.target) * 100
-
-  return (
-    <div className="group relative bg-card rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border border-border">
-      <div className="aspect-4/3 overflow-hidden relative">
-        <div className="absolute top-4 left-4 z-10 bg-background/90 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide text-foreground shadow-sm">
-          {campaign.tags[0]}
-        </div>
-        <img
-          src={campaign.image}
-          alt={campaign.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-        />
-        <div className="absolute bottom-0 left-0 right-0 p-6 bg-linear-to-t from-black/60 to-transparent">
-          <h3 className="text-2xl font-serif font-bold leading-tight mb-1 text-white">
-            {campaign.title}
-          </h3>
-          <p className="text-white/90 text-sm opacity-90">by {campaign.organizer}</p>
-        </div>
-      </div>
-
-      <div className="p-6">
-        <div className="flex justify-between items-end mb-4">
-          <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Yield Donated</p>
-            <p className="text-2xl font-black text-foreground">
-              ${(campaign.current / 1000).toFixed(1)}k
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Target</p>
-            <p className="text-lg font-bold text-muted-foreground/60">
-              ${(campaign.target / 1000).toFixed(0)}k
-            </p>
-          </div>
-        </div>
-
-        <div className="w-full bg-secondary h-2 rounded-full overflow-hidden mb-6">
-          <div
-            className="bg-yellow-500 h-full rounded-full"
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-
-        <div className="flex items-center justify-between text-sm font-medium text-foreground">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            {campaign.donors} Stakers
-          </div>
-          <div className="flex items-center gap-1 text-white bg-secondary px-3 py-1 rounded-md">
-            <Zap className="w-4 h-4" />
-            Aave USDC
-          </div>
-        </div>
-      </div>
+// Dynamic import for Three.js Globe
+const Globe = dynamic(() => import('@/components/home/Globe').then((mod) => mod.Globe), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-14 h-14 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
     </div>
-  )
-}
-
-// Real Campaign Cards Section
-function FeaturedCampaigns() {
-  const { useGetActiveCampaigns } = useCampaign()
-  const { data: activeCampaigns } = useGetActiveCampaigns()
-
-  const campaignIds = activeCampaigns?.slice(0, 3).map((c) => c.id) || []
-
-  // If we have real campaigns, show them
-  if (campaignIds.length > 0) {
-    return (
-      <div className="grid md:grid-cols-3 gap-8">
-        {campaignIds.map((id) => (
-          <CampaignCard key={id.toString()} campaignId={id} />
-        ))}
-      </div>
-    )
-  }
-
-  // Otherwise show mock campaigns
-  return (
-    <div className="grid md:grid-cols-3 gap-8">
-      {MOCK_CAMPAIGNS.map((campaign) => (
-        <MockCampaignCard key={campaign.id} campaign={campaign} />
-      ))}
-    </div>
-  )
-}
+  ),
+})
 
 export function HomeClient() {
-  useAccount()
-
   return (
-    <div className="min-h-screen text-foreground font-sans selection:bg-accent selection:text-accent-foreground">
-      {/* Hero Section - Classy Style */}
-      <section className="min-h-[90vh] max-w-6xl mx-auto px-6 text-center">
-        <div className="mt-16 inline-flex items-center gap-2 px-4 py-2 bg-secondary rounded-full text-white dark:text-teal-100 text-sm font-bold mb-8 border border-border">
-          <ShieldCheck className="w-4 h-4" /> The No-Loss Donation Protocol
-        </div>
-        <h1 className="text-6xl md:text-8xl font-serif font-black text-foreground mb-6 leading-tight tracking-tight">
-          Grow your wealth.
-          <br />
-          <span className="text-gradient-hero">Heal the world.</span>
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-          Deposit assets into secure DeFi vaults. Keep your principal 100% safe. Automatically
-          donate the generated yield.
-        </p>
-        <div className="flex flex-col mt-10 sm:flex-row justify-center gap-4">
-          <Link href="/campaigns">
-            <Button
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl px-6 py-3 text-base font-bold shadow-md hover:shadow-lg transition-all duration-300 transform active:scale-95"
-            >
-              Browse Campaigns
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-2 border-primary text-primary hover:bg-secondary rounded-xl px-6 py-3 text-base font-bold"
-            >
-              View Dashboard
-            </Button>
-          </Link>
-        </div>
-      </section>
+    <div className="text-foreground font-sans selection:bg-accent selection:text-accent-foreground">
+      {/* Live Donations Marquee */}
+      <DonationsMarquee />
 
-      {/* The 3D Flipbook Section with How It Works */}
-      <FlipBook />
+      {/* Hero Section */}
+      <section className="snap-section-full flex flex-col justify-center relative overflow-hidden">
+        {/* Background elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] bg-accent/5 rounded-full blur-3xl" />
+        </div>
 
-      {/* Featured Campaigns Section */}
-      <section className="max-w-6xl min-h-[80vh] mx-auto px-6 py-24">
-        <div className="flex justify-between items-end mb-12">
-          <div>
-            <h2 className="text-4xl font-serif font-bold text-foreground">Featured Causes</h2>
-            <p className="text-muted-foreground mt-2">Support verified campaigns with your yield</p>
+        <div className="max-w-7xl mx-auto px-6 w-full py-12">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+            {/* Globe */}
+            <div className="order-2 lg:order-1 flex justify-center">
+              <div className="relative w-[350px] h-[350px] lg:w-[450px] lg:h-[450px]">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 rounded-full blur-2xl" />
+                <Suspense
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-14 h-14 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                    </div>
+                  }
+                >
+                  <Globe />
+                </Suspense>
+              </div>
+            </div>
+
+            {/* Text Content */}
+            <div className="order-1 lg:order-2 text-center flex flex-col items-center lg:items-center">
+              <h1
+                className="text-5xl md:text-6xl lg:text-7xl font-serif font-black text-foreground mb-6 leading-[1.05] tracking-tight opacity-0 animate-fade-in-up"
+                style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}
+              >
+                Grow your wealth.
+                <br />
+                <span className="text-gradient-hero">Heal the world.</span>
+              </h1>
+
+              <p
+                className="text-xl text-muted-foreground max-w-lg mx-auto lg:mx-0 mb-10 leading-relaxed opacity-0 animate-fade-in-up"
+                style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}
+              >
+                Deposit assets into secure DeFi vaults. Keep your principal 100% safe. The yield
+                goes to verified causes.
+              </p>
+
+              <div
+                className="flex flex-col sm:flex-row justify-center gap-4 opacity-0 animate-fade-in-up"
+                style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}
+              >
+                <Link href="/dashboard">
+                  <div className="group relative">
+                    {/* Glow effect behind button */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-primary via-accent to-primary rounded-2xl opacity-50 blur-lg group-hover:opacity-80 group-hover:blur-xl transition-all duration-500 animate-gradient bg-[length:200%_100%]" />
+                    <Button
+                      size="lg"
+                      className="relative bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground rounded-2xl px-10 py-7 text-base font-bold shadow-2xl transition-all duration-500 group-hover:scale-[1.02] overflow-hidden"
+                    >
+                      <span className="relative z-10 flex items-center gap-2">
+                        Start Staking
+                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1.5 transition-transform duration-300" />
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-accent via-primary to-accent bg-[length:200%_100%] opacity-0 group-hover:opacity-100 animate-gradient transition-opacity duration-500" />
+                    </Button>
+                  </div>
+                </Link>
+                <Link href="/campaigns">
+                  <div className="group relative">
+                    {/* Subtle border glow */}
+                    <div className="absolute -inset-px bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="relative border-2 border-border bg-background/80 backdrop-blur-sm hover:border-transparent hover:bg-background/90 text-foreground rounded-2xl px-10 py-7 text-base font-bold transition-all duration-500 group-hover:scale-[1.02]"
+                    >
+                      <span className="bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text group-hover:text-transparent transition-all duration-500">
+                        Browse Campaigns
+                      </span>
+                    </Button>
+                  </div>
+                </Link>
+              </div>
+            </div>
           </div>
-          <Link
-            href="/campaigns"
-            className="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all"
-          >
-            See All <ArrowRight className="w-5 h-5" />
-          </Link>
         </div>
 
-        <FeaturedCampaigns />
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 animate-bounce">
+          <span className="text-xs text-muted-foreground uppercase tracking-widest">Scroll</span>
+          <ChevronDown className="w-5 h-5 text-muted-foreground" />
+        </div>
       </section>
 
-      {/* Why Give Protocol Section */}
-      {/* <section className="max-w-6xl mx-auto px-6 py-24 border-t border-emerald-100">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-serif font-bold text-emerald-950 mb-4">
-            Why Give Protocol?
-          </h2>
-          <p className="text-emerald-800/60 max-w-xl mx-auto">
-            Built for transparency, security, and community governance.
-          </p>
-        </div>
+      {/* Categories */}
+      <CauseCategories />
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {[
-            {
-              icon: Shield,
-              title: 'Principal Protected',
-              desc: 'Only yield goes to NGOs—your deposit stays safe.',
-            },
-            {
-              icon: Users,
-              title: 'Community Governed',
-              desc: 'Stakers vote on campaign checkpoints.',
-            },
-            {
-              icon: Zap,
-              title: 'Instant Withdrawals',
-              desc: 'Access your funds anytime with no lock-up.',
-            },
-            {
-              icon: CheckCircle2,
-              title: 'Verified NGOs',
-              desc: 'All organizations are thoroughly vetted.',
-            },
-          ].map((feature, i) => (
-            <Card
-              key={i}
-              className="bg-card border border-border rounded-3xl shadow-none hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group"
-            >
-              <CardContent className="pt-8 pb-8 space-y-4 text-center">
-                <div className="w-16 h-16 mx-auto bg-secondary rounded-full flex items-center justify-center group-hover:bg-secondary/80 transition-colors">
-                  <feature.icon className="h-8 w-8 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-bold text-xl text-foreground">{feature.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* How It Works */}
+      <ArchitectureFlow />
+
+      {/* Featured Causes */}
+      <FeaturedCauses />
+
+      {/* Final CTA Section */}
+      <section className="snap-section py-20 relative overflow-hidden flex flex-col justify-center">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/3 to-transparent" />
+
+        <div className="max-w-3xl mx-auto px-6 text-center relative">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-8">
+            <Lock className="w-4 h-4" />
+            <span>Your Principal Never Leaves</span>
+          </div>
+
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-foreground mb-6">
+            Ready to make an impact?
+          </h2>
+          <p className="text-lg text-muted-foreground mb-12 max-w-xl mx-auto">
+            Join thousands of donors changing the world without risking their assets.
+          </p>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-5">
+            <Link href="/dashboard">
+              <div className="group relative">
+                {/* Glow effect behind button */}
+                <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-accent to-primary rounded-2xl opacity-60 blur-xl group-hover:opacity-90 group-hover:blur-2xl transition-all duration-500 animate-gradient bg-[length:200%_100%]" />
+                <Button
+                  size="xl"
+                  className="relative bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground rounded-2xl px-12 py-8 text-lg font-bold shadow-2xl transition-all duration-500 group-hover:scale-[1.02] overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center gap-3">
+                    Start Donating Now
+                    <Sparkles className="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-accent via-primary to-accent bg-[length:200%_100%] opacity-0 group-hover:opacity-100 animate-gradient transition-opacity duration-500" />
+                </Button>
+              </div>
+            </Link>
+            <Link href="/ngos/register">
+              <div className="group relative">
+                {/* Subtle border glow */}
+                <div className="absolute -inset-px bg-gradient-to-r from-primary/50 via-accent/50 to-primary/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <Button
+                  variant="outline"
+                  size="xl"
+                  className="relative border-2 border-border bg-background/80 backdrop-blur-sm hover:border-transparent hover:bg-background/90 text-foreground rounded-2xl px-12 py-8 text-lg font-bold transition-all duration-500 group-hover:scale-[1.02]"
+                >
+                  <span className="bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text group-hover:text-transparent transition-all duration-500">
+                    Register as NGO
+                  </span>
+                </Button>
+              </div>
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-20 grid grid-cols-3 gap-8 max-w-lg mx-auto">
+            <div>
+              <p className="text-3xl md:text-4xl font-black font-serif text-foreground">$2.4M</p>
+              <p className="text-sm text-muted-foreground mt-1">Value Locked</p>
+            </div>
+            <div className="border-x border-border px-4">
+              <p className="text-3xl md:text-4xl font-black font-serif text-primary">$420K</p>
+              <p className="text-sm text-muted-foreground mt-1">Yield Donated</p>
+            </div>
+            <div>
+              <p className="text-3xl md:text-4xl font-black font-serif text-foreground">89</p>
+              <p className="text-sm text-muted-foreground mt-1">Verified NGOs</p>
+            </div>
+          </div>
         </div>
-      </section> */}
+      </section>
     </div>
   )
 }
