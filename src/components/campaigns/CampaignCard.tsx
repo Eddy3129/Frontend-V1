@@ -1,47 +1,41 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { formatUnits, type Address } from 'viem'
 import { useConnection } from 'wagmi'
 import { useCampaign, CampaignStatus } from '@/hooks/useCampaign'
 import { useCampaignVault } from '@/hooks/useCampaignVault'
-import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { useAaveAPY, formatAPY } from '@/hooks/useAaveAPY'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { getGatewayUrl, parseCID, type CampaignMetadata } from '@/lib/pinata'
 import Link from 'next/link'
-import { Clock, Target, ArrowRight, Heart } from 'lucide-react'
+import { Clock, Target, ArrowRight, Heart, TrendingUp } from 'lucide-react'
 import { STRATEGY_IDS, getContracts } from '@/config/contracts'
-import { baseSepolia } from '@/config/chains'
+import { baseSepolia, ethereumSepolia } from '@/config/chains'
+import { UsdcCircleColorful, EthereumCircleColorful } from '@ant-design/web3-icons'
 
 interface CampaignCardProps {
   campaignId: `0x${string}`
   filterStatus?: CampaignStatus
   showApproveButton?: boolean
-  hideIfNoMetadata?: boolean // Hide the card if metadata cannot be fetched
+  hideIfNoMetadata?: boolean
 }
 
 const statusColors: Record<CampaignStatus, string> = {
-  [CampaignStatus.Submitted]:
-    'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
-  [CampaignStatus.Approved]:
-    'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
-  [CampaignStatus.Rejected]:
-    'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
-  [CampaignStatus.Active]:
-    'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800',
-  [CampaignStatus.Paused]:
-    'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800',
-  [CampaignStatus.Cancelled]:
-    'bg-stone-100 text-stone-800 border-stone-200 dark:bg-stone-800/50 dark:text-stone-300 dark:border-stone-700',
-  [CampaignStatus.Completed]:
-    'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
-  [CampaignStatus.Unknown]: 'bg-gray-100 text-gray-800 border-gray-200',
+  [CampaignStatus.Submitted]: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  [CampaignStatus.Approved]: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  [CampaignStatus.Rejected]: 'bg-red-500/10 text-red-600 border-red-500/20',
+  [CampaignStatus.Active]: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  [CampaignStatus.Paused]: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+  [CampaignStatus.Cancelled]: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  [CampaignStatus.Completed]: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+  [CampaignStatus.Unknown]: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
 }
 
 const statusLabels: Record<CampaignStatus, string> = {
-  [CampaignStatus.Submitted]: 'Submitted',
+  [CampaignStatus.Submitted]: 'Pending',
   [CampaignStatus.Approved]: 'Approved',
   [CampaignStatus.Rejected]: 'Rejected',
   [CampaignStatus.Active]: 'Active',
@@ -61,14 +55,16 @@ export function CampaignCard({
   const [isLoading, setIsLoading] = useState(true)
   const [metadataFailed, setMetadataFailed] = useState(false)
   const [hasFetched, setHasFetched] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
   const { chainId } = useConnection()
-  const contracts = getContracts(chainId ?? baseSepolia.id)
+  const activeChainId = chainId ?? baseSepolia.id
+  const contracts = getContracts(activeChainId)
 
   const { useGetCampaign, getMetadataCID } = useCampaign()
   const { data: campaign } = useGetCampaign(campaignId)
+  const { strategies } = useAaveAPY()
 
-  // Use CampaignConfig structure from the new contract
   const campaignData = campaign as
     | {
         targetStake: bigint
@@ -81,7 +77,7 @@ export function CampaignCard({
       }
     | undefined
 
-  // Determine effective vault address (fallback to global protocol vaults if campaign vault is 0x0)
+  // Determine effective vault address
   const isEth = campaignData?.strategyId === STRATEGY_IDS.AAVE_ETH
   const fallbackVault = isEth ? contracts.ethVault : contracts.usdcVault
   const vaultAddress =
@@ -89,21 +85,28 @@ export function CampaignCard({
       ? campaignData.vault
       : fallbackVault
 
-  // Fetch TVL from campaign vault (or fallback)
+  // Fetch TVL from campaign vault
   const { totalAssets } = useCampaignVault(vaultAddress)
 
-  // Fetch metadata from IPFS - only once when campaign is loaded
+  // Get APY for the campaign's strategy
+  const selectedNetwork = activeChainId === ethereumSepolia.id ? 'eth-sepolia' : 'base-sepolia'
+  const strategyAsset = isEth ? 'WETH' : 'USDC'
+
+  const apy = useMemo(() => {
+    const networkStrategies = strategies.filter((s) => s.network === selectedNetwork)
+    const strategy = networkStrategies.find((s) => s.asset === strategyAsset)
+    return strategy?.apy || 0
+  }, [strategies, selectedNetwork, strategyAsset])
+
+  // Fetch metadata from IPFS
   useEffect(() => {
-    // Don't fetch if already fetched or no campaign
     if (hasFetched || !campaign || !campaignId) return
 
     async function fetchMetadata() {
       setHasFetched(true)
       try {
-        // Get the metadata CID from API (cached)
         const cid = await getMetadataCID(campaignId)
         if (!cid) {
-          console.warn('No metadata CID found for campaign:', campaignId)
           setMetadataFailed(true)
           setIsLoading(false)
           return
@@ -129,64 +132,20 @@ export function CampaignCard({
     fetchMetadata()
   }, [campaign, campaignId, hasFetched, getMetadataCID])
 
-  if (!campaign || !campaignData) {
+  if (!campaign || !campaignData || !campaignData.targetStake || isLoading) {
     return (
-      <Card className="animate-pulse border-none shadow-md bg-card">
-        <div className="h-48 bg-muted w-full rounded-t-lg" />
-        <CardContent className="space-y-4 pt-6">
-          <div className="h-6 bg-muted rounded w-3/4" />
-          <div className="h-4 bg-muted rounded w-1/2" />
-          <div className="h-2 bg-muted rounded w-full mt-4" />
-        </CardContent>
-      </Card>
+      <div className="animate-pulse border border-border bg-card shadow-sm">
+        <div className="h-96 bg-muted w-full" />
+      </div>
     )
   }
 
-  // Check if campaign data is valid (exists check)
-  if (!campaignData.targetStake) {
-    return (
-      <Card className="animate-pulse border-none shadow-md bg-card">
-        <div className="h-48 bg-muted w-full rounded-t-lg" />
-        <CardContent className="space-y-4 pt-6">
-          <div className="h-6 bg-muted rounded w-3/4" />
-          <div className="h-4 bg-muted rounded w-1/2" />
-          <div className="h-2 bg-muted rounded w-full mt-4" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // If hideIfNoMetadata is true and metadata failed to load, don't render the card
-  if (hideIfNoMetadata && !isLoading && (metadataFailed || !metadata || !metadata.name)) {
+  // If hideIfNoMetadata is true and metadata failed, don't render
+  if (hideIfNoMetadata && (metadataFailed || !metadata || !metadata.name)) {
     return null
   }
 
-  // Still loading metadata - show skeleton
-  if (isLoading) {
-    return (
-      <Card className="animate-pulse border-none shadow-md bg-card">
-        <div className="h-48 bg-muted w-full rounded-t-lg" />
-        <CardContent className="space-y-4 pt-6">
-          <div className="h-6 bg-muted rounded w-3/4" />
-          <div className="h-4 bg-muted rounded w-1/2" />
-          <div className="h-2 bg-muted rounded w-full mt-4" />
-        </CardContent>
-      </Card>
-    )
-  }
-
   const decimals = isEth ? 18 : 6
-  // For ETH, we should ideally convert to USD for display if goal is USD
-  // But for now, just showing the raw value formatted (e.g. 1 ETH) vs Goal (e.g. 2000 USDC) might be confusing if not labeled.
-  // CampaignDetail handles conversion. CampaignCard is simpler.
-  // If goal is USDC (6 dec), and raised is ETH (18 dec), we have a mismatch.
-  // Assuming targetStake is always USD value.
-  // If strategy is ETH, totalAssets is ETH amount.
-  // To get USD value, we need ETH price.
-  // CampaignCard doesn't fetch ETH price currently.
-  // For now, I will just format it with correct decimals so it's not a huge number.
-  // A future improvement would be to fetch price or standardise goal to the asset.
-
   const goal = Number(formatUnits(campaignData.targetStake, decimals))
   const raised = totalAssets ? Number(formatUnits(totalAssets, decimals)) : 0
   const progress = goal > 0 ? (raised / goal) * 100 : 0
@@ -202,96 +161,160 @@ export function CampaignCard({
     Math.ceil((Number(campaignData.fundraisingEnd) * 1000 - Date.now()) / (1000 * 60 * 60 * 24))
   )
 
-  // Use cover image if available, otherwise first image
+  // Use cover image if available
   const coverImageUrl = metadata?.coverImage
     ? getGatewayUrl(parseCID(metadata.coverImage))
     : metadata?.images?.[0]
       ? getGatewayUrl(parseCID(metadata.images[0]))
       : null
 
-  // Logo is separate from cover - use first image if cover exists, otherwise no logo
+  // Logo is separate from cover
   const logoUrl =
     metadata?.coverImage && metadata?.images?.[0]
       ? getGatewayUrl(parseCID(metadata.images[0]))
       : null
 
   return (
-    <Card className="group overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 bg-card flex flex-col h-full hover:-translate-y-1">
-      {/* Image Header */}
-      <div className="relative h-48 w-full overflow-hidden bg-muted">
-        {coverImageUrl ? (
-          <img
-            src={coverImageUrl}
-            alt={metadata?.name || 'Campaign'}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary/20">
-            <Heart className="w-12 h-12" />
+    <div
+      className="relative min-h-[420px] overflow-hidden group transition-all duration-500 border border-border shadow-md hover:shadow-2xl"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Background Image - Always visible */}
+      <div
+        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+        style={{
+          backgroundImage: coverImageUrl
+            ? `url(${coverImageUrl})`
+            : 'linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--primary) / 0.1) 100%)',
+        }}
+      >
+        {!coverImageUrl && (
+          <div className="w-full h-full flex items-center justify-center">
+            <Heart className="w-20 h-20 text-primary/20" />
           </div>
         )}
-        <div className="absolute top-3 right-3">
-          <Badge variant="outline" className={`${statusColors[status]} backdrop-blur-sm shadow-sm`}>
-            {statusLabels[status]}
-          </Badge>
+      </div>
+
+      {/* Gradient overlay - Always visible, stronger at bottom for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+      {/* Status Badge - Top right, always visible */}
+      <div className="absolute top-4 right-4 z-20">
+        <Badge variant="outline" className={`${statusColors[status]} backdrop-blur-sm shadow-sm`}>
+          {statusLabels[status]}
+        </Badge>
+      </div>
+
+      {/* Main Card Content - Always visible */}
+      <div
+        className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${
+          isHovered ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
+        }`}
+      >
+        {/* Fully transparent bottom section with text shadows for readability */}
+        <div className="p-6 space-y-4">
+          {/* Title and Logo */}
+          <div className="flex items-start gap-3">
+            {logoUrl && (
+              <div className="relative w-14 h-14 overflow-hidden shrink-0 border-2 border-white bg-white shadow-xl rounded-lg">
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-serif font-bold text-xl text-white line-clamp-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                {metadata?.name || 'Untitled Campaign'}
+              </h3>
+              <p className="text-sm text-white/95 font-medium mt-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
+                by {metadata?.ngoName || 'Unknown NGO'}
+              </p>
+            </div>
+          </div>
+
+          {/* Raised amount and APY side by side */}
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-white/90 mb-1.5 drop-shadow font-semibold">
+                Raised
+              </p>
+              <p className="text-2xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                {isEth ? `${raised.toFixed(4)} ETH` : `$${raised.toLocaleString()}`}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-white/90 mb-1.5 drop-shadow font-semibold">
+                APY
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-2xl font-bold text-emerald-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                  {apy.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-white/90 drop-shadow">
+                {Math.min(progress, 100).toFixed(0)}% of goal
+              </span>
+              <span className="text-xs font-medium text-white/90 drop-shadow">
+                {daysLeft} days left
+              </span>
+            </div>
+            <Progress
+              value={Math.min(progress, 100)}
+              className="h-2.5 bg-white/25 shadow-inner"
+              indicatorClassName="bg-white shadow-lg"
+            />
+          </div>
+
+          {/* Network and Goal */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-1.5 text-xs text-white/95 drop-shadow bg-white/10 backdrop-blur-sm px-2.5 py-1.5 rounded-full">
+              {activeChainId === ethereumSepolia.id ? (
+                <>
+                  <EthereumCircleColorful className="w-4 h-4" />
+                  <span className="font-medium">Ethereum Sepolia</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white text-[8px] font-bold">
+                    B
+                  </div>
+                  <span className="font-medium">Base Sepolia</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-sm text-white/95 drop-shadow">
+              <Target className="w-4 h-4" />
+              <span className="font-medium">
+                {isEth ? `${goal.toFixed(2)} ETH` : `$${goal.toLocaleString()}`}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <CardContent className="flex-1 pt-5 pb-3 space-y-3">
-        {/* Title with optional logo */}
-        <div className="flex items-start gap-3">
-          {logoUrl && (
-            <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 border bg-muted">
-              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-serif font-bold text-lg text-card-foreground line-clamp-1 group-hover:text-primary transition-colors">
-              {metadata?.name || 'Untitled Campaign'}
-            </h3>
-            <p className="text-xs text-muted-foreground font-medium">
-              by {metadata?.ngoName || 'Unknown NGO'}
+      {/* Hover State - Click to view, lighter overlay */}
+      <Link href={`/campaigns/${campaignId}`}>
+        <div
+          className={`absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col justify-center items-center p-8 transition-all duration-700 ease-out cursor-pointer ${
+            isHovered ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+          }`}
+        >
+          <div className="space-y-6 text-center max-w-md">
+            <p className="text-sm text-white leading-relaxed drop-shadow-lg">
+              {metadata?.description || 'No description available.'}
             </p>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-serif tracking-wide shadow-xl h-12 px-8 group/btn text-base">
+              View Details
+              <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+            </Button>
           </div>
         </div>
-
-        <p className="text-sm text-muted-foreground line-clamp-2">
-          {metadata?.description || 'No description available.'}
-        </p>
-
-        <div className="space-y-2 pt-1">
-          <div className="flex justify-between text-sm font-medium text-muted-foreground">
-            <span>
-              {isEth ? `${raised.toLocaleString()} ETH` : `$${raised.toLocaleString()}`} raised
-            </span>
-            <span>{progress.toFixed(0)}%</span>
-          </div>
-          <Progress
-            value={progress}
-            className="h-2 bg-primary/10"
-            indicatorClassName="bg-primary"
-          />
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Target className="w-3 h-3" />
-              Goal: `${goal.toLocaleString()}`
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {daysLeft} days left
-            </span>
-          </div>
-        </div>
-      </CardContent>
-
-      <CardFooter className="pt-0 pb-5">
-        <Link href={`/campaigns/${campaignId}`} className="w-full">
-          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-serif tracking-wide shadow-md group-hover:shadow-lg transition-all">
-            View Details
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-          </Button>
-        </Link>
-      </CardFooter>
-    </Card>
+      </Link>
+    </div>
   )
 }
