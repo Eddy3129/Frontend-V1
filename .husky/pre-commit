@@ -1,1 +1,11 @@
-pnpm exec lint-staged
+# Run TypeScript type checking
+echo "Running TypeScript type check..."
+pnpm type-check
+
+# Only run lint-staged if type-check passes
+if [ $? -eq 0 ]; then
+  pnpm exec lint-staged
+else
+  echo "\n❌ TypeScript type check failed. Please fix the errors before committing."
+  exit 1
+fi

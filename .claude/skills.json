@@ -1,0 +1,14 @@
+{
+  "skills": {
+    "test": {
+      "name": "test",
+      "description": "Run tests, linting, and formatting",
+      "path": "skills/test.md"
+    },
+    "format": {
+      "name": "format",
+      "description": "Format code and fix linting issues",
+      "path": "skills/format.md"
+    }
+  }
+}
