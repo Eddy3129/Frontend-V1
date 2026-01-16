@@ -138,6 +138,7 @@ export interface CampaignIPFSMetadata {
   description: string
   ngoName: string
   category: string
+  currency: 'USDC' | 'ETH' // Added currency field
   images: string[]
   coverImage?: string
   personInCharge: string

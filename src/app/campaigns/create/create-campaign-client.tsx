@@ -137,6 +137,7 @@ export function CreateCampaignClient() {
       description: formData.description,
       ngoName: formData.organizationName,
       category: formData.category,
+      currency: formData.selectedStrategies[0]?.includes('weth') ? 'ETH' : 'USDC', // derive currency
       images: [
         ...(formData.organizationLogo ? [formData.organizationLogo] : []),
         ...formData.additionalImages.filter(Boolean),

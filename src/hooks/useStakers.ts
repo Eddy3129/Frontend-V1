@@ -1,35 +1,35 @@
-import { useMemo, useEffect, useState } from 'react'
-import { usePublicClient, useBlockNumber } from 'wagmi'
-import { type Address, type Log, parseAbiItem } from 'viem'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useReadContract } from 'wagmi'
+import { type Address, formatUnits } from 'viem'
 import { CAMPAIGN_REGISTRY_ABI } from '@/lib/abi'
 import { getContracts } from '@/config/contracts'
 import { baseSepolia, ethereumSepolia } from '@/config/chains'
+import { ponderQuery } from '@/lib/ponder'
 
 export interface Staker {
   address: Address
   shares: bigint
+  amountFormatted: string
   votingPowerPercent: number
   rank?: number
 }
 
 /**
- * Hook to fetch and manage staker data for a campaign
- * Fetches StakeDeposited events and queries stake positions
+ * Hook to fetch and manage staker data for a campaign using Ponder
  */
 export function useStakers(campaignId: `0x${string}` | undefined, chainId?: number) {
   const supportedChainId =
     chainId === baseSepolia.id || chainId === ethereumSepolia.id ? chainId : ethereumSepolia.id
 
   const contracts = getContracts(supportedChainId)
-  const publicClient = usePublicClient({ chainId: supportedChainId })
 
-  const [stakers, setStakers] = useState<Staker[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  // Get total staked to calculate percentages
-  const { data: campaignData } = useReadContract({
+  // 1. Get total staked from contract
+  const {
+    data: campaignData,
+    isLoading: isCampaignLoading,
+    error: campaignError,
+  } = useReadContract({
     address: contracts?.campaignRegistry,
     abi: CAMPAIGN_REGISTRY_ABI,
     functionName: 'getCampaign',
@@ -40,130 +40,136 @@ export function useStakers(campaignId: `0x${string}` | undefined, chainId?: numb
     },
   })
 
-  const totalStaked = useMemo(() => {
-    if (!campaignData || !Array.isArray(campaignData)) return 0n
-    return (campaignData[9] as bigint) || 0n // totalStaked field
+  const strategyInfo = useMemo(() => {
+    if (!campaignData) return { symbol: 'ETH', decimals: 18 }
+    const strategyId = Array.isArray(campaignData)
+      ? (campaignData[5] as string)
+      : (campaignData as any).strategyId
+
+    // AAVE_USDC Strategy ID
+    if (strategyId === '0xfa06fc6834087ec4c5d38992a03c81b67c92225cb2bdc899d7fe333316794dd5') {
+      return { symbol: 'USDC', decimals: 6 }
+    }
+    return { symbol: 'ETH', decimals: 18 }
   }, [campaignData])
 
-  // Fetch stakers from StakeDeposited events
-  useEffect(() => {
-    if (!publicClient || !campaignId || !contracts?.campaignRegistry) {
-      setIsLoading(false)
-      return
-    }
+  const totalStakedFromContract = useMemo(() => {
+    if (!campaignData) return 0n
+    return Array.isArray(campaignData)
+      ? (campaignData[9] as bigint) || 0n
+      : (campaignData as any).totalStaked || 0n
+  }, [campaignData])
 
-    const fetchStakers = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
+  const vaultAddress = useMemo(() => {
+    if (!campaignData) return undefined
 
-        // Get StakeDeposited events for this campaign
-        const stakeDepositedEvent = parseAbiItem(
-          'event StakeDeposited(bytes32 indexed id, address indexed supporter, uint256 amount, uint256 totalStaked)'
-        )
+    const addr = Array.isArray(campaignData)
+      ? (campaignData[4] as string)
+      : (campaignData as any).vault
 
-        // Fetch last 10000 blocks (roughly 1-2 days depending on chain)
-        const currentBlock = await publicClient.getBlockNumber()
-        const fromBlock = currentBlock > 10000n ? currentBlock - 10000n : 0n
+    const strategyId = Array.isArray(campaignData)
+      ? (campaignData[5] as string)
+      : (campaignData as any).strategyId
 
-        const logs = await publicClient.getLogs({
-          address: contracts.campaignRegistry,
-          event: stakeDepositedEvent,
-          args: {
-            id: campaignId,
-          },
-          fromBlock,
-          toBlock: 'latest',
-        })
-
-        // Extract unique staker addresses
-        const uniqueStakers = new Set<Address>()
-        logs.forEach((log) => {
-          if (log.args.supporter) {
-            uniqueStakers.add(log.args.supporter)
-          }
-        })
-
-        // Fetch stake position for each staker
-        const stakerDataPromises = Array.from(uniqueStakers).map(async (stakerAddress) => {
-          try {
-            const stakePosition = await publicClient.readContract({
-              address: contracts.campaignRegistry!,
-              abi: CAMPAIGN_REGISTRY_ABI,
-              functionName: 'getStakePosition',
-              args: [campaignId, stakerAddress],
-            })
-
-            if (!Array.isArray(stakePosition)) return null
-
-            const shares = (stakePosition[0] as bigint) || 0n
-
-            // Skip if no shares
-            if (shares === 0n) return null
-
-            const votingPowerPercent =
-              totalStaked > 0n ? (Number(shares) / Number(totalStaked)) * 100 : 0
-
-            return {
-              address: stakerAddress,
-              shares,
-              votingPowerPercent,
-            } as Staker
-          } catch (err) {
-            console.warn(`Failed to fetch stake position for ${stakerAddress}:`, err)
-            return null
-          }
-        })
-
-        const stakerData = (await Promise.all(stakerDataPromises)).filter(
-          (s): s is Staker => s !== null
-        )
-
-        // Sort by shares (descending)
-        const sortedStakers = stakerData.sort((a, b) => {
-          if (a.shares > b.shares) return -1
-          if (a.shares < b.shares) return 1
-          return 0
-        })
-
-        // Add rank
-        const stakersWithRank = sortedStakers.map((staker, index) => ({
-          ...staker,
-          rank: index + 1,
-        }))
-
-        setStakers(stakersWithRank)
-      } catch (err) {
-        console.error('Failed to fetch stakers:', err)
-        setError(err instanceof Error ? err : new Error('Unknown error'))
-      } finally {
-        setIsLoading(false)
+    if (!addr || addr === '0x0000000000000000000000000000000000000000') {
+      if (strategyId === '0xf652ab2d7840bae82cb8fb1b886de339d4b690cf5f62560a68ec11d0ad4fd3e4') {
+        return contracts?.ethVault
+      }
+      if (strategyId === '0xfa06fc6834087ec4c5d38992a03c81b67c92225cb2bdc899d7fe333316794dd5') {
+        return contracts?.usdcVault
       }
     }
+    return addr
+  }, [campaignData, contracts])
 
-    fetchStakers()
-  }, [publicClient, campaignId, contracts?.campaignRegistry, totalStaked])
+  // 2. Fetch stakers list from Ponder
+  const {
+    data: ponderStakers = [],
+    isLoading: isPonderLoading,
+    error: ponderError,
+  } = useQuery({
+    queryKey: ['campaign-stakers', campaignId, vaultAddress, supportedChainId],
+    queryFn: async () => {
+      if (!campaignId) return []
 
-  // Get top N stakers
-  const getTopStakers = (count: number = 10) => {
-    return stakers.slice(0, count)
-  }
+      const ids = [campaignId.toLowerCase()]
+      if (vaultAddress) ids.push(vaultAddress.toLowerCase())
 
-  // Find user rank
-  const getUserRank = (userAddress?: Address) => {
-    if (!userAddress) return null
-    const userStaker = stakers.find((s) => s.address.toLowerCase() === userAddress.toLowerCase())
-    return userStaker?.rank || null
-  }
+      const query = `
+        query GetStakers($ids: [String!]!) {
+          stakes(
+            where: { campaignId_in: $ids }
+            orderBy: "amount"
+            orderDirection: "desc"
+            limit: 100
+          ) {
+            items {
+              supporterId
+              amount
+            }
+          }
+        }
+      `
+
+      try {
+        const data = await ponderQuery<{
+          stakes: { items: { supporterId: string; amount: string }[] }
+        }>(query, { ids })
+
+        const stakerMap = new Map<string, bigint>()
+        data.stakes.items.forEach((item) => {
+          const addr = item.supporterId.toLowerCase()
+          stakerMap.set(addr, (stakerMap.get(addr) || 0n) + BigInt(item.amount))
+        })
+
+        return Array.from(stakerMap.entries()).map(([addr, amount]) => ({
+          address: addr as Address,
+          shares: amount,
+        }))
+      } catch (err) {
+        console.error('❌ [useStakers] Failed to fetch:', err)
+        return []
+      }
+    },
+    enabled: !!campaignId,
+    refetchInterval: 10000,
+  })
+
+  // 3. Process stakers with voting power and formatting
+  const stakers = useMemo(() => {
+    // If totalStaked from contract is 0, use the sum of stakers from Ponder
+    const totalIndexed = ponderStakers.reduce((acc, s) => acc + s.shares, 0n)
+    const activeTotal =
+      totalStakedFromContract > totalIndexed ? totalStakedFromContract : totalIndexed
+
+    return ponderStakers.map((staker, index) => {
+      const amountFormatted = formatUnits(staker.shares, strategyInfo.decimals)
+      const votingPowerPercent =
+        activeTotal > 0n ? (Number(staker.shares) * 100) / Number(activeTotal) : 0
+
+      return {
+        ...staker,
+        amountFormatted: `${Number(amountFormatted).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${strategyInfo.symbol}`,
+        votingPowerPercent,
+        rank: index + 1,
+      }
+    })
+  }, [ponderStakers, totalStakedFromContract, strategyInfo])
 
   return {
     stakers,
-    totalStakers: stakers.length as number,
-    topStakers: getTopStakers(10),
-    getTopStakers,
-    getUserRank,
-    isLoading,
-    error,
-    totalStaked,
+    totalStakers: stakers.length,
+    topStakers: stakers.slice(0, 10),
+    getTopStakers: (count: number = 10) => stakers.slice(0, count),
+    getUserRank: (userAddress?: Address) => {
+      if (!userAddress) return null
+      return (
+        stakers.find((s) => s.address.toLowerCase() === userAddress.toLowerCase())?.rank || null
+      )
+    },
+    isLoading: isCampaignLoading || isPonderLoading,
+    error: ponderError || campaignError,
+    totalStaked: totalStakedFromContract,
+    symbol: strategyInfo.symbol,
   }
 }

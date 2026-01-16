@@ -29,14 +29,14 @@ import { Card, CardContent } from '@/components/ui/card'
 
 // Import child components
 import { ImageCarousel } from './components/ImageCarousel'
+import { StakeModal } from './components/StakeModal'
 import { MilestonesCard } from './components/MilestonesCard'
 import { DepositForm } from './components/DepositForm'
 import { AnalyticsTab } from './components/AnalyticsTab'
-import { YourPositionCard } from './components/YourPositionCard'
 import { CheckpointVoting } from './components/CheckpointVoting'
 import { StakersLeaderboard } from './components/StakersLeaderboard'
 import { VotingPowerCard } from './components/VotingPowerCard'
-import { ConnectButton } from '@/components/wallet/ConnectButton'
+
 import { GoalSummary } from './components/GoalSummary'
 import { AboutSection } from './components/AboutSection'
 import { AnnouncementsCard } from './components/AnnouncementsCard'
@@ -62,8 +62,6 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
 
   // Staking state
   const [selectedAsset, setSelectedAsset] = useState<'USDC' | 'ETH'>('USDC')
-  const [stakeAmount, setStakeAmount] = useState('')
-  const [yieldAllocation, setYieldAllocation] = useState(75)
 
   const { useGetCampaign, useGetStakeWeight, getMetadataCID } = useCampaign()
   const { data: campaignData } = useGetCampaign(id)
@@ -112,6 +110,11 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
     depositError,
     formattedUserAssets,
     refetchAll,
+    withdraw,
+    isWithdrawPending,
+    isWithdrawConfirming,
+    isWithdrawConfirmed,
+    withdrawError,
   } = useVault(selectedAsset, effectiveVault)
 
   const { data: isAdminData } = useReadContract({
@@ -199,51 +202,56 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
     }
   }, [selectedAsset])
 
-  const handleSetMax = () => {
-    const amount =
-      selectedAsset === 'USDC'
-        ? usdcBalanceFormatted
-        : Math.max(ethBalanceFormatted, wethBalanceFormatted)
-    if (amount > 0) setStakeAmount(amount.toString())
-  }
-
   const isActionLoading =
-    isApprovePending || isApproveConfirming || isDepositPending || isDepositConfirming
+    isApprovePending ||
+    isApproveConfirming ||
+    isDepositPending ||
+    isDepositConfirming ||
+    isWithdrawPending ||
+    isWithdrawConfirming
 
-  const handleDeposit = async () => {
-    const amountNum = parseFloat(stakeAmount || '0')
+  const handleDeposit = async (amount: string) => {
+    const amountNum = parseFloat(amount || '0')
     if (!address) {
       toast.error('Connect your wallet to deposit', { id: 'deposit' })
       return
     }
     if (!contracts?.usdcVault) {
-      toast.error('Unsupported network for deposits. Switch to Base Sepolia or Ethereum Sepolia.')
-      return
-    }
-    if (selectedAsset === 'ETH' && !ethDepositsEnabled) {
-      toast.error('ETH deposits require the deployed ETH vault. Switch to Ethereum Sepolia.', {
-        id: 'deposit',
-      })
+      toast.error('Unsupported network for deposits.')
       return
     }
     if (!amountNum || amountNum <= 0) return
 
     try {
       if (selectedAsset === 'USDC') {
-        if (!hasAllowance(stakeAmount)) {
+        if (!hasAllowance(amount)) {
           toast.loading('Approving USDC...', { id: 'approve' })
           approveMax()
           return
         }
         toast.loading('Depositing USDC...', { id: 'deposit' })
-        deposit(stakeAmount)
+        deposit(amount)
       } else {
         toast.loading('Depositing ETH...', { id: 'deposit' })
-        deposit(stakeAmount)
+        deposit(amount)
       }
     } catch (error) {
       console.error('[CampaignDetail] Deposit failed', error)
       toast.error('Deposit failed', { id: 'deposit' })
+    }
+  }
+
+  const handleWithdraw = async (amount: string) => {
+    const amountNum = parseFloat(amount || '0')
+    if (!address) return
+    if (!amountNum || amountNum <= 0) return
+
+    try {
+      toast.loading('Withdrawing stake...', { id: 'withdraw' })
+      withdraw(amount)
+    } catch (error) {
+      console.error('[CampaignDetail] Withdraw failed', error)
+      toast.error('Withdraw failed', { id: 'withdraw' })
     }
   }
 
@@ -261,12 +269,22 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
   }, [isDepositConfirmed, refetchAll])
 
   useEffect(() => {
-    if (depositError) {
-      const message = depositError instanceof Error ? depositError.message : 'USDC deposit failed'
-      toast.error(message, { id: 'deposit' })
-      console.error('[CampaignDetail] USDC deposit error', depositError)
+    if (isWithdrawConfirmed) {
+      toast.success('Stake withdrawn successfully!', { id: 'withdraw' })
+      refetchAll()
     }
-  }, [depositError])
+  }, [isWithdrawConfirmed, refetchAll])
+
+  useEffect(() => {
+    const err = depositError || withdrawError
+    if (err) {
+      const message = err instanceof Error ? err.message : 'Transaction failed'
+      // Use different IDs to allow both to show if needed, but usually only one is active
+      toast.error(message, { id: 'deposit' })
+      toast.error(message, { id: 'withdraw' })
+      console.error('[CampaignDetail] Transaction error', err)
+    }
+  }, [depositError, withdrawError])
 
   // Parse campaign data safely
   const parsedCampaignData = campaign as
@@ -441,14 +459,7 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
     )
   }
 
-  // Yield calculations
-  const depositAmount = parseFloat(stakeAmount) || 0
-  const annualYield = (depositAmount * apy) / 100
-  const toCampaign = (annualYield * yieldAllocation) / 100
-  const toUser = annualYield - toCampaign
-  const totalReturn = depositAmount + toUser
-
-  // Projection based on existing vault balance for selected asset
+  // Projections based on existing vault balance for selected asset
   const myAnnualYield = (userVaultBalance * apy) / 100
   const myDailyYield = myAnnualYield / 365
 
@@ -533,34 +544,22 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
 
         <div className="lg:col-span-3 space-y-6">
           {/* Announcement Section */}
-          {/* <AnnouncementsCard /> */}
 
+          {/* Leaderboard and Staking Action */}
           <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
-            <h4 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Top Stakers
-            </h4>
             <StakersLeaderboard
               campaignId={id!}
               maxStakers={5}
               showViewAll={true}
               chainId={supportedChainId}
+              status={status}
+              onStake={() => setIsStakeModalOpen(true)}
             />
           </div>
 
-          {/* Action Card */}
-          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
-            {!address ? (
-              <ConnectButton
-                className="w-full h-12 text-base font-semibold rounded-xl shadow-md"
-                label="Connect Wallet"
-              />
-            ) : (
-              <StakeButton status={status} onClick={() => setIsStakeModalOpen(true)} />
-            )}
-
-            {/* Voting Power Card */}
-            {address && stakeWeight && BigInt(String(stakeWeight)) > 0n ? (
+          {/* Voting Power Card */}
+          {address && stakeWeight && BigInt(String(stakeWeight)) > 0n && (
+            <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
               <VotingPowerCard
                 votingPower={BigInt(String(stakeWeight))}
                 votingPowerPercent={
@@ -571,55 +570,23 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
                 }
                 onViewGovernance={() => setLeftTab('governance')}
               />
-            ) : null}
-          </div>
-
-          {/* Your Position Card */}
-          {/* <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
-            <YourPositionCard address={address} stakeWeight={stakeWeight} />
-          </div> */}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Stake Modal */}
-      <Dialog open={isStakeModalOpen} onOpenChange={setIsStakeModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wallet className="h-5 w-5" />
-              Stake to Campaign
-            </DialogTitle>
-            <DialogDescription>
-              Deposit funds to support this campaign and earn yield.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4">
-            <DepositForm
-              selectedAsset={selectedAsset}
-              stakeAmount={stakeAmount}
-              setStakeAmount={setStakeAmount}
-              yieldAllocation={yieldAllocation}
-              setYieldAllocation={setYieldAllocation}
-              displayBalance={displayBalance}
-              address={address}
-              handleSetMax={handleSetMax}
-              handleDeposit={() => {
-                handleDeposit()
-                // Optionally close modal after deposit
-              }}
-              isActionLoading={isActionLoading}
-              ethDepositsEnabled={ethDepositsEnabled}
-              depositAmount={depositAmount}
-              apy={apy}
-              toCampaign={toCampaign}
-              toUser={toUser}
-              totalReturn={totalReturn}
-              userVaultBalance={userVaultBalance}
-              myDailyYield={myDailyYield}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <StakeModal
+        isOpen={isStakeModalOpen}
+        onClose={() => setIsStakeModalOpen(false)}
+        selectedAsset={selectedAsset}
+        displayBalance={displayBalance}
+        userVaultBalance={userVaultBalance}
+        apy={apy}
+        isActionLoading={isActionLoading}
+        handleDeposit={handleDeposit}
+        handleWithdraw={handleWithdraw}
+        isEthStrategy={isEthStrategy}
+      />
     </div>
   )
 }

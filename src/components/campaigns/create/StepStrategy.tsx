@@ -243,7 +243,7 @@ export function StepStrategy({ formData, updateFormData }: StepStrategyProps) {
           </Label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-              $
+              {formData.selectedStrategies[0]?.includes('weth') ? 'ETH' : '$'}
             </span>
             <Input
               id="targetTVL"
@@ -261,7 +261,7 @@ export function StepStrategy({ formData, updateFormData }: StepStrategyProps) {
           <Label htmlFor="minStake">Min Stake (optional)</Label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-              $
+              {formData.selectedStrategies[0]?.includes('weth') ? 'ETH' : '$'}
             </span>
             <Input
               id="minStake"
@@ -283,7 +283,7 @@ export function StepStrategy({ formData, updateFormData }: StepStrategyProps) {
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Est. Annual Yield</span>
               <span className="text-xl font-bold text-gradient-give">
-                $
+                {formData.selectedStrategies[0]?.includes('weth') ? 'ETH ' : '$'}
                 {(
                   (parseFloat(formData.targetTVL) *
                     (strategies

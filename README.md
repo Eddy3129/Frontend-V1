@@ -291,7 +291,7 @@ This project uses **Tailwind CSS 4** with custom utility classes defined in `src
 .section-spacing     /* Section vertical spacing */
 .page-header         /* Page header container */
 .page-title          /* Page title text */
-.btn-brand; /* Primary CTA button */
+.btn-brand /* Primary CTA button */
 ```
 
 ## 🌐 Supported Networks

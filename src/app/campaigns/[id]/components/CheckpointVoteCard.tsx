@@ -34,8 +34,6 @@ export function CheckpointVoteCard({
   chainId,
 }: CheckpointVoteCardProps) {
   const { address } = useAccount()
-  const [votesFor, setVotesFor] = useState(0n)
-  const [votesAgainst, setVotesAgainst] = useState(0n)
   const [hasVoted, setHasVoted] = useState(false)
   const [userVote, setUserVote] = useState<boolean | null>(null)
 
@@ -51,6 +49,8 @@ export function CheckpointVoteCard({
     calculateQuorumStatus,
     isVotingActive,
     timeRemaining,
+    votesFor,
+    votesAgainst,
   } = useCheckpointVoting(campaignId, checkpointIndex, chainId)
 
   const {

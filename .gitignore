@@ -41,6 +41,7 @@ pnpm-debug.log*
 .pnpm-debug.log*
 logs/
 *.log
+.ponder/
 
 # ============================================
 # IDE & EDITORS

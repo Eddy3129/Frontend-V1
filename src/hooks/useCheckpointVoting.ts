@@ -1,4 +1,6 @@
 import { useMemo, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { ponderQuery } from '@/lib/ponder'
 import {
   useReadContract,
   useWriteContract,
@@ -148,15 +150,55 @@ export function useCheckpointVoting(
     [contracts?.campaignRegistry, campaignId, checkpointIndex, voteWrite]
   )
 
+  // Fetch vote counts from Ponder
+  // We use a simple refetch interval since we don't have subscriptions set up yet
+  const { data: voteCounts } = useQuery({
+    queryKey: ['checkpoint-votes', campaignId, checkpointIndex],
+    queryFn: async () => {
+      if (!campaignId || checkpointIndex === undefined) return { votesFor: 0n, votesAgainst: 0n }
+
+      const id = `${campaignId}-${checkpointIndex}`
+      const query = `
+        query GetCheckpoint($id: String!) {
+          checkpoint(id: $id) {
+            votesFor
+            votesAgainst
+          }
+        }
+      `
+
+      try {
+        const data = await ponderQuery<{
+          checkpoint: { votesFor: string; votesAgainst: string } | null
+        }>(query, { id })
+        if (!data?.checkpoint) return { votesFor: 0n, votesAgainst: 0n }
+
+        return {
+          votesFor: BigInt(data.checkpoint.votesFor),
+          votesAgainst: BigInt(data.checkpoint.votesAgainst),
+        }
+      } catch (error) {
+        // Return 0s if Ponder is not ready/reachable
+        console.warn('Failed to fetch checkpoint votes:', error)
+        return { votesFor: 0n, votesAgainst: 0n }
+      }
+    },
+    enabled: !!campaignId && checkpointIndex !== undefined,
+    refetchInterval: 5000,
+  })
+
   // Helper to calculate quorum status
   const calculateQuorumStatus = useCallback(
-    (votesFor: bigint) => {
+    (votesForInput?: bigint) => {
+      // Use fetched votes if input not provided
+      const currentVotesFor = votesForInput ?? voteCounts?.votesFor ?? 0n
+
       if (!checkpoint) return { reached: false, percentOfQuorum: 0, requiredVotes: 0n }
 
       const quorumRequired = (checkpoint.totalEligibleStake * BigInt(checkpoint.quorumBps)) / 10000n
-      const reached = votesFor >= quorumRequired
+      const reached = currentVotesFor >= quorumRequired
       const percentOfQuorum =
-        quorumRequired > 0n ? (Number(votesFor) / Number(quorumRequired)) * 100 : 0
+        quorumRequired > 0n ? (Number(currentVotesFor) / Number(quorumRequired)) * 100 : 0
 
       return {
         reached,
@@ -164,7 +206,7 @@ export function useCheckpointVoting(
         requiredVotes: quorumRequired,
       }
     },
-    [checkpoint]
+    [checkpoint, voteCounts]
   )
 
   // Helper to check if voting is active
@@ -193,6 +235,10 @@ export function useCheckpointVoting(
     checkpoint,
     isCheckpointLoading,
     refetchCheckpoint,
+
+    // Vote counts
+    votesFor: voteCounts?.votesFor ?? 0n,
+    votesAgainst: voteCounts?.votesAgainst ?? 0n,
 
     // Voting power hook
     useGetUserVotingPower,

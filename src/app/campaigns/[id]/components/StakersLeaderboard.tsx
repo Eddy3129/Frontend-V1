@@ -1,19 +1,36 @@
-'use client'
-
 import { useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { useStakers } from '@/hooks/useStakers'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Users, ExternalLink, Crown, Medal, Award } from 'lucide-react'
+import {
+  Users,
+  ExternalLink,
+  Crown,
+  Medal,
+  Award,
+  Wallet,
+  PiggyBank,
+  ArrowUpCircle,
+  ArrowDownCircle,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { baseSepolia } from '@/config/chains'
+import { baseSepolia, ethereumSepolia } from '@/config/chains'
+import { Button } from '@/components/ui/button'
+import { CampaignStatus } from '@/hooks/useCampaign'
+import { useCampaignActivity } from '@/hooks/useCampaignActivity'
+import { formatDistanceToNow } from 'date-fns'
+import { History, ArrowUpRight, CheckCircle2, XCircle } from 'lucide-react'
+import { formatUnits } from 'viem'
+import { ConnectButton } from '@/components/wallet/ConnectButton'
 
 interface StakersLeaderboardProps {
   campaignId: `0x${string}`
   maxStakers?: number
   showViewAll?: boolean
   chainId?: number
+  status: CampaignStatus
+  onStake: () => void
 }
 
 const truncateAddress = (address: string) => {
@@ -25,53 +42,48 @@ export function StakersLeaderboard({
   maxStakers = 5,
   showViewAll = true,
   chainId,
+  status,
+  onStake,
 }: StakersLeaderboardProps) {
   const { address: userAddress } = useAccount()
-  const { topStakers, totalStakers, getUserRank, isLoading, error, totalStaked } = useStakers(
+  const { topStakers, totalStakers, getUserRank, stakers, isLoading, error } = useStakers(
     campaignId,
     chainId
   )
+  const { data: activities } = useCampaignActivity(campaignId)
 
   const displayStakers = useMemo(() => {
     return topStakers.slice(0, maxStakers)
   }, [topStakers, maxStakers])
 
+  const userStaker = useMemo(() => {
+    if (!userAddress) return null
+    return stakers.find((s) => s.address.toLowerCase() === userAddress.toLowerCase())
+  }, [stakers, userAddress])
+
   const userRank = getUserRank(userAddress)
 
   // Get block explorer URL
   const explorerUrl = useMemo(() => {
-    const chain = chainId === baseSepolia.id ? baseSepolia : baseSepolia // Default to baseSepolia
-    return chain.blockExplorers?.default.url || 'https://sepolia.basescan.org'
+    const chain = chainId === ethereumSepolia.id ? ethereumSepolia : baseSepolia
+    return chain.blockExplorers?.default.url || 'https://sepolia.etherscan.io'
   }, [chainId])
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="flex items-center gap-3 animate-pulse">
-            <div className="w-8 h-8 rounded-full bg-muted" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-muted rounded w-3/4" />
-              <div className="h-3 bg-muted rounded w-1/2" />
+      <div className="space-y-4">
+        <div className="h-24 bg-muted animate-pulse rounded-xl" />
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 animate-pulse">
+              <div className="w-8 h-8 rounded-full bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="text-sm text-muted-foreground text-center py-4">Failed to load stakers</div>
-    )
-  }
-
-  if (displayStakers.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-        <p className="text-sm">No stakers yet</p>
-        <p className="text-xs mt-1">Be the first to stake!</p>
+          ))}
+        </div>
       </div>
     )
   }
@@ -91,91 +103,204 @@ export function StakersLeaderboard({
   }
 
   return (
-    <div className="space-y-3">
-      {/* Total Stakers Count */}
-      {totalStakers > 0 && (
-        <div className="flex items-center justify-between text-sm mb-2">
-          <span className="text-muted-foreground">Total Stakers: {totalStakers}</span>
-          {userRank && (
-            <Badge variant="outline" className="text-xs">
-              You're #{userRank}
-            </Badge>
+    <div className="space-y-6">
+      {/* Current User Stake Action */}
+      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <PiggyBank className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                Active Stake
+              </p>
+              <h3 className="text-xl font-bold text-foreground">
+                {userStaker ? userStaker.amountFormatted : '0.00'}
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {userAddress ? (
+          <Button
+            onClick={onStake}
+            className="w-full h-11 text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            disabled={status !== CampaignStatus.Active && status !== CampaignStatus.Approved}
+          >
+            <Wallet className="h-4 w-4 mr-2" />
+            {userStaker && userStaker.shares > 0n ? 'Modify' : 'Stake'}
+          </Button>
+        ) : (
+          <ConnectButton className="w-full" label="Connect Wallet" />
+        )}
+      </div>
+
+      {/* Recent Campaign Activity */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Recent Activity
+          </h4>
+        </div>
+
+        <div className="bg-muted/10 border border-border/50 rounded-xl overflow-hidden">
+          {activities && activities.length > 0 ? (
+            <div className="divide-y divide-border/30">
+              {activities.slice(0, 5).map((activity) => (
+                <div key={activity.id} className="p-3 hover:bg-muted/20 transition-colors group">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex gap-3">
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm',
+                          activity.type === 'DEPOSIT' && 'bg-emerald-500/10 text-emerald-600',
+                          activity.type === 'WITHDRAW' && 'bg-amber-500/10 text-amber-600',
+                          activity.type === 'VOTE' && 'bg-blue-500/10 text-blue-600'
+                        )}
+                      >
+                        {activity.type === 'DEPOSIT' && <ArrowUpCircle className="h-4 w-4" />}
+                        {activity.type === 'WITHDRAW' && <ArrowDownCircle className="h-4 w-4" />}
+                        {activity.type === 'VOTE' &&
+                          (activity.support ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <XCircle className="h-4 w-4" />
+                          ))}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-foreground capitalize">
+                            {activity.type.toLowerCase()}
+                          </span>
+                          {activity.amount && (
+                            <span className="text-[11px] font-black text-primary">
+                              {Number(formatUnits(BigInt(activity.amount), 18)).toFixed(2)}{' '}
+                              {activity.type === 'VOTE' ? 'Power' : ''}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground">by</span>
+                          <span className="text-[10px] font-bold text-foreground">
+                            {truncateAddress(activity.supporterId)}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {formatDistanceToNow(parseInt(activity.blockTimestamp) * 1000, {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href={`${explorerUrl}/tx/${activity.transactionHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <ArrowUpRight className="h-3 w-3 text-muted-foreground hover:text-primary transition-colors" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center bg-muted/5">
+              <History className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">No recent activity found</p>
+            </div>
           )}
         </div>
-      )}
+      </div>
 
-      {/* Staker List */}
-      {displayStakers.map((staker, index) => {
-        const isCurrentUser =
-          userAddress && staker.address.toLowerCase() === userAddress.toLowerCase()
+      <div className="space-y-3">
+        {/* Total Stakers Count */}
+        <div className="flex items-center justify-between px-1">
+          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Leaderboard
+          </h4>
+          <span className="text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-full">
+            {totalStakers} total
+          </span>
+        </div>
 
-        return (
-          <div
-            key={staker.address}
-            className={`flex items-center gap-3 text-sm group transition-all ${
-              isCurrentUser
-                ? 'p-3 bg-primary/5 border border-primary/20 rounded-lg'
-                : 'p-2 hover:bg-muted/30 rounded-lg'
-            }`}
-          >
-            {/* Rank & Avatar */}
-            <div className="relative">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  isCurrentUser
-                    ? 'bg-primary/20 text-primary border-2 border-primary'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                {staker.rank && staker.rank <= 3 ? (
-                  getRankIcon(staker.rank)
-                ) : (
-                  <span>#{staker.rank}</span>
-                )}
-              </div>
-            </div>
+        {/* Staker List */}
+        {displayStakers.length > 0 ? (
+          <div className="space-y-2">
+            {displayStakers.map((staker) => {
+              const isCurrentUser =
+                userAddress && staker.address.toLowerCase() === userAddress.toLowerCase()
 
-            {/* Address & Percentage */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className={`font-medium truncate ${isCurrentUser ? 'text-primary' : ''}`}>
-                  {truncateAddress(staker.address)}
-                </p>
-                {isCurrentUser && (
-                  <Badge variant="secondary" className="text-xs">
-                    You
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {staker.votingPowerPercent.toFixed(2)}% voting power
-              </p>
-            </div>
+              return (
+                <div
+                  key={staker.address}
+                  className={`flex items-center gap-3 text-sm group transition-all ${
+                    isCurrentUser
+                      ? 'p-2 bg-primary/10 rounded-xl border border-primary/20'
+                      : 'p-2 hover:bg-muted/30 rounded-xl'
+                  }`}
+                >
+                  {/* Rank & Avatar */}
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      isCurrentUser
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {staker.rank && staker.rank <= 3 ? (
+                      getRankIcon(staker.rank)
+                    ) : (
+                      <span>#{staker.rank}</span>
+                    )}
+                  </div>
 
-            {/* View on Explorer */}
-            <Link
-              href={`${explorerUrl}/address/${staker.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
-            </Link>
+                  {/* Address & Percentage */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={`font-medium truncate ${isCurrentUser ? 'text-primary' : ''}`}>
+                        {truncateAddress(staker.address)}
+                        {isCurrentUser && ' (You)'}
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-medium">
+                      {staker.amountFormatted}
+                    </p>
+                  </div>
+
+                  {/* View on Explorer */}
+                  <Link
+                    href={`${explorerUrl}/address/${staker.address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted rounded-md"
+                  >
+                    <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                  </Link>
+                </div>
+              )
+            })}
           </div>
-        )
-      })}
+        ) : (
+          <div className="text-center py-6 text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-xs">Be the first to stake!</p>
+          </div>
+        )}
 
-      {/* View All Link */}
-      {showViewAll && totalStakers > maxStakers && (
-        <Link
-          href={`${explorerUrl}/address/${campaignId}#events`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block text-center text-sm text-primary hover:underline pt-2"
-        >
-          View all {totalStakers} stakers on explorer →
-        </Link>
-      )}
+        {/* View All Link */}
+        {showViewAll && totalStakers > maxStakers && (
+          <Link
+            href={`${explorerUrl}/address/${campaignId}#events`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center text-xs text-primary hover:underline font-medium"
+          >
+            View all {totalStakers} stakers on explorer →
+          </Link>
+        )}
+      </div>
     </div>
   )
 }
