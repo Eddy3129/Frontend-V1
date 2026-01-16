@@ -12,6 +12,7 @@ import { SmoothScroll } from '@/components/providers/SmoothScroll'
 import { Navigation } from '@/components/layout/Navigation'
 import { Footer } from '@/components/layout/Footer'
 import { Toaster } from '@/components/ui/sonner'
+import '@rainbow-me/rainbowkit/styles.css'
 import './globals.css'
 
 const playfair = Playfair_Display({

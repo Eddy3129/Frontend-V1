@@ -1,25 +1,11 @@
-import { http, createConfig, createStorage, cookieStorage } from 'wagmi'
-import { injected } from 'wagmi/connectors'
+import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { baseSepolia, ethereumSepolia } from './chains'
 
-export const wagmiConfig = createConfig({
+export const wagmiConfig = getDefaultConfig({
+  appName: 'Give Protocol',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'public',
   chains: [baseSepolia, ethereumSepolia],
-  connectors: [injected()],
-  storage: createStorage({
-    storage: cookieStorage,
-  }),
   ssr: true,
-  batch: {
-    multicall: true,
-  },
-  transports: {
-    [baseSepolia.id]: http(
-      process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC || 'https://base-sepolia-rpc.publicnode.com'
-    ),
-    [ethereumSepolia.id]: http(
-      process.env.NEXT_PUBLIC_ETH_SEPOLIA_RPC || 'https://ethereum-sepolia-rpc.publicnode.com'
-    ),
-  },
 })
 
 declare module 'wagmi' {

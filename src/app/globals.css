@@ -107,6 +107,13 @@
   /* Fonts */
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-messy: 'Reenie Beanie', cursive;
+
+  /* RainbowKit Font Override */
+  --rk-fonts-body: var(--font-serif);
+}
+
+[data-rk] {
+  --rk-fonts-body: var(--font-serif) !important;
 }
 
 .dark {
