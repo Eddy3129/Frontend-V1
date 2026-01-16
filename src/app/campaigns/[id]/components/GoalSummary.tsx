@@ -33,7 +33,11 @@ export function GoalSummary({
 }: GoalSummaryProps) {
   const daysLeft = Math.max(0, Math.ceil((endTime.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
-  const logoUrl = metadata?.images?.[0] ? getGatewayUrl(parseCID(metadata.images[0])) : null
+  const logoUrl = metadata?.ngoLogo
+    ? getGatewayUrl(parseCID(metadata.ngoLogo))
+    : metadata?.images?.[0]
+      ? getGatewayUrl(parseCID(metadata.images[0]))
+      : null
 
   // Calculate circumference for circle (r=8, c=2*pi*8 ≈ 50.26)
   const radius = 6

@@ -23,6 +23,7 @@ export interface CampaignMetadata {
   category: string
   images: string[] // IPFS CIDs
   coverImage?: string // Main cover image CID
+  ngoLogo?: string // NGO logo CID
   milestones: {
     title: string
     description: string

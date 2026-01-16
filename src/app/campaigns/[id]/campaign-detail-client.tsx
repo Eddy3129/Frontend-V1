@@ -383,21 +383,25 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
       images.push(getGatewayUrl(parseCID(metadata.coverImage)))
     }
 
-    // Add all other images
+    // For existing campaigns (old style), the logo was prepended to the images array.
+    // If ngoLogo is missing, we assume metadata.images[0] is the logo and skip it.
+    const isOldStyle = metadata && !metadata.ngoLogo
+
+    // Add gallery images
     metadata?.images?.forEach((imageCid, index) => {
-      // Skip first image if it's being used as cover fallback and no explicit cover exists
-      if (!metadata.coverImage && index === 0 && images.length === 0) {
-        images.push(getGatewayUrl(parseCID(imageCid)))
-      } else if (metadata.coverImage || index > 0) {
-        images.push(getGatewayUrl(parseCID(imageCid)))
-      }
+      if (isOldStyle && index === 0) return
+      images.push(getGatewayUrl(parseCID(imageCid)))
     })
 
     return images
   }, [metadata])
 
   // Logo for header
-  const logoUrl = metadata?.images?.[0] ? getGatewayUrl(parseCID(metadata.images[0])) : null
+  const logoUrl = metadata?.ngoLogo
+    ? getGatewayUrl(parseCID(metadata.ngoLogo))
+    : metadata?.images?.[0]
+      ? getGatewayUrl(parseCID(metadata.images[0]))
+      : null
 
   // Early returns AFTER all hooks
   if (!isValidId) {
