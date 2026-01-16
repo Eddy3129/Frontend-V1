@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useCampaign, CampaignStatus, type CampaignConfig } from '@/hooks/useCampaign'
 import { CampaignCard } from '@/components/campaigns/CampaignCard'
 import { Button } from '@/components/ui/button'
@@ -14,17 +14,18 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Plus, Search, Heart, Filter, Shield, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
-import { useConnection, useReadContract } from 'wagmi'
-import { getContracts, ROLES } from '@/config/contracts'
+import { useConnection, useReadContract, useReadContracts } from 'wagmi'
+import { getContracts, ROLES, STRATEGY_IDS } from '@/config/contracts'
 import { ethereumSepolia } from '@/config/chains'
-import { ACL_MANAGER_ABI } from '@/lib/abi'
-import { formatUnits } from 'viem'
+import { ACL_MANAGER_ABI, CAMPAIGN_VAULT_ABI } from '@/lib/abi'
+import { formatUnits, type Abi } from 'viem'
 
 export function CampaignsClient() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<CampaignStatus | 'all'>(
     CampaignStatus.Active
   )
+  const [ethPriceUsd, setEthPriceUsd] = useState<number>(0)
 
   const {
     campaignCount,
@@ -37,6 +38,24 @@ export function CampaignsClient() {
   const count = Number(campaignCount ?? 0n)
   // Use Ethereum Sepolia for admin role checks (adjust if your admin roles are on Base)
   const contracts = getContracts(ethereumSepolia.id)
+
+  // Fetch ETH price for TVL calculation
+  useEffect(() => {
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+        )
+        const json = await res.json()
+        if (json?.ethereum?.usd) {
+          setEthPriceUsd(Number(json.ethereum.usd))
+        }
+      } catch (err) {
+        console.error('Failed to fetch ETH price', err)
+      }
+    }
+    fetchPrice()
+  }, [])
 
   // Check if user is campaign admin (only when wallet is connected)
   const { data: isAdminData } = useReadContract({
@@ -54,7 +73,6 @@ export function CampaignsClient() {
 
   // Get all campaigns (up to 50) - No wallet required for public viewing
   const { data: allCampaigns } = useGetCampaigns(0, Math.min(count, 50))
-  const { data: _activeCampaigns } = useGetActiveCampaigns()
 
   // Use real campaign IDs
   const campaignIds = (rawCampaignIds as `0x${string}`[]) || []
@@ -85,27 +103,59 @@ export function CampaignsClient() {
     })
   }, [allCampaigns, campaignIds, allowedStatuses, selectedStatus])
 
+  // Get active campaigns for TVL calculation
+  const activeCampaigns = useMemo(() => {
+    if (!allCampaigns) return []
+    return (allCampaigns as CampaignConfig[]).filter((c) => c.status === CampaignStatus.Active)
+  }, [allCampaigns])
+
+  // Fetch vault assets for all active campaigns
+  const { data: vaultAssets } = useReadContracts({
+    contracts: activeCampaigns.map((campaign) => {
+      const isEth = campaign.strategyId === STRATEGY_IDS.AAVE_ETH
+      const defaultVault = isEth ? contracts?.ethVault : contracts?.usdcVault
+      const vaultAddress =
+        campaign.vault && campaign.vault !== '0x0000000000000000000000000000000000000000'
+          ? campaign.vault
+          : defaultVault
+
+      return {
+        address: vaultAddress,
+        abi: CAMPAIGN_VAULT_ABI as Abi,
+        functionName: 'totalAssets',
+        chainId: ethereumSepolia.id, // Current limitation: assumes Eth Sepolia or synced state
+      }
+    }),
+    query: {
+      enabled: activeCampaigns.length > 0,
+    },
+  })
+
   // Calculate total staked across all active campaigns
   const totalStaked = useMemo(() => {
-    if (!allCampaigns) return 0
+    if (!activeCampaigns || !vaultAssets) return 0
 
-    const activeCampaigns = (allCampaigns as CampaignConfig[]).filter(
-      (c) => c.status === CampaignStatus.Active
-    )
+    return activeCampaigns.reduce((sum, campaign, index) => {
+      const result = vaultAssets[index]
+      if (result.status !== 'success' || !result.result) return sum
 
-    // Sum up totalStaked from each active campaign
-    return activeCampaigns.reduce((sum, campaign) => {
-      const staked = Number(formatUnits(campaign.totalStaked || 0n, 6)) // Assuming USDC decimals
-      return sum + staked
+      const assets = result.result as bigint
+      const isEth = campaign.strategyId === STRATEGY_IDS.AAVE_ETH
+
+      let usdValue = 0
+      if (isEth) {
+        const ethValue = Number(formatUnits(assets, 18))
+        usdValue = ethValue * ethPriceUsd
+      } else {
+        usdValue = Number(formatUnits(assets, 6)) // USDC
+      }
+
+      return sum + usdValue
     }, 0)
-  }, [allCampaigns])
+  }, [activeCampaigns, vaultAssets, ethPriceUsd])
 
   // Count active campaigns
-  const activeCampaignCount = useMemo(() => {
-    if (!allCampaigns) return 0
-    return (allCampaigns as CampaignConfig[]).filter((c) => c.status === CampaignStatus.Active)
-      .length
-  }, [allCampaigns])
+  const activeCampaignCount = activeCampaigns.length
 
   const statusFilters = [
     { value: 'all', label: 'All Campaigns' },
@@ -132,7 +182,9 @@ export function CampaignsClient() {
         <div className="flex gap-4">
           <div className="text-right border border-border rounded-lg px-4 py-3 bg-card/50">
             <p className="text-sm text-muted-foreground">Total Staked</p>
-            <p className="text-2xl font-bold">${totalStaked.toLocaleString()}</p>
+            <p className="text-2xl font-bold">
+              ${totalStaked.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </p>
           </div>
           <div className="text-right border border-border rounded-lg px-4 py-3 bg-card/50">
             <p className="text-sm text-muted-foreground">Active Campaigns</p>

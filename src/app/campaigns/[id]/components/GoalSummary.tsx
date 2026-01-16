@@ -107,19 +107,6 @@ export function GoalSummary({
             APY <TrendingUp className="h-3 w-3 text-emerald-500" />
           </p>
           <p className="text-lg font-bold text-emerald-600">{apy.toFixed(1)}%</p>
-          <div className="absolute -bottom-1 right-0 opacity-20 scale-75 origin-bottom-right">
-            {/* Decorative mini graph */}
-            <svg width="40" height="16" className="text-emerald-500">
-              <polyline
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points="0,12 8,8 16,10 24,4 32,6 40,2"
-              />
-            </svg>
-          </div>
         </div>
 
         {/* Stakers */}

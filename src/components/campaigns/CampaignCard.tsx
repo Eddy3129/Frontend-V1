@@ -13,7 +13,7 @@ import { getGatewayUrl, parseCID, type CampaignMetadata } from '@/lib/pinata'
 import Link from 'next/link'
 import { Clock, Target, ArrowRight, Heart, TrendingUp } from 'lucide-react'
 import { STRATEGY_IDS, getContracts } from '@/config/contracts'
-import { baseSepolia, ethereumSepolia } from '@/config/chains'
+import { baseSepolia, ethereumSepolia, type SupportedChainId } from '@/config/chains'
 import { UsdcCircleColorful, EthereumCircleColorful } from '@ant-design/web3-icons'
 
 interface CampaignCardProps {
@@ -79,19 +79,23 @@ export function CampaignCard({
       }
     | undefined
 
+  // Use campaign chain for contracts if available, otherwise active chain
+  const applicableChainId = (campaignChainId ?? activeChainId) as SupportedChainId
+  const applicableContracts = getContracts(applicableChainId)
+
   // Determine effective vault address
   const isEth = campaignData?.strategyId === STRATEGY_IDS.AAVE_ETH
-  const fallbackVault = isEth ? contracts.ethVault : contracts.usdcVault
+  const fallbackVault = isEth ? applicableContracts.ethVault : applicableContracts.usdcVault
   const vaultAddress =
     campaignData?.vault && campaignData.vault !== '0x0000000000000000000000000000000000000000'
       ? campaignData.vault
       : fallbackVault
 
   // Fetch TVL from campaign vault - use the campaign's chain
-  const { totalAssets } = useCampaignVault(vaultAddress, campaignChainId)
+  const { totalAssets } = useCampaignVault(vaultAddress, applicableChainId)
 
   // Use campaign's chain for network selection to get correct APY
-  const selectedNetwork = campaignChainId === ethereumSepolia.id ? 'eth-sepolia' : 'base-sepolia'
+  const selectedNetwork = applicableChainId === ethereumSepolia.id ? 'eth-sepolia' : 'base-sepolia'
   const strategyAsset = isEth ? 'WETH' : 'USDC'
 
   const apy = useMemo(() => {
@@ -211,18 +215,20 @@ export function CampaignCard({
         <div className="p-6 space-y-4">
           {/* Title and Logo */}
           <div className="flex items-start gap-3">
-            {logoUrl && (
-              <div className="relative w-14 h-14 overflow-hidden shrink-0 border-2 border-white bg-white shadow-xl rounded-lg">
-                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-              </div>
-            )}
             <div className="flex-1 min-w-0">
               <h3 className="font-serif font-bold text-xl text-white line-clamp-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                 {metadata?.name || 'Untitled Campaign'}
               </h3>
-              <p className="text-sm text-white/95 font-medium mt-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
-                by {metadata?.ngoName || 'Unknown NGO'}
-              </p>
+              <div className="flex items-center gap-2 mt-1.5">
+                {logoUrl && (
+                  <div className="relative w-6 h-6 overflow-hidden shrink-0 border border-white/20 bg-white/10 backdrop-blur-sm shadow-sm rounded-full">
+                    <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <p className="text-sm text-white/95 font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.6)]">
+                  {metadata?.ngoName || 'Unknown NGO'}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -268,7 +274,7 @@ export function CampaignCard({
           {/* Network and Goal */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-1.5 text-xs text-white/95 drop-shadow bg-white/10 backdrop-blur-sm px-2.5 py-1.5 rounded-full">
-              {activeChainId === ethereumSepolia.id ? (
+              {applicableChainId === ethereumSepolia.id ? (
                 <>
                   <EthereumCircleColorful className="w-4 h-4" />
                   <span className="font-medium">Ethereum Sepolia</span>

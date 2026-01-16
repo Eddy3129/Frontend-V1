@@ -1,8 +1,9 @@
 import { useReadContract } from 'wagmi'
 import { type Address } from 'viem'
+import { type SupportedChainId } from '@/config/chains'
 import { CAMPAIGN_VAULT_ABI } from '@/lib/abi'
 
-export function useCampaignVault(vaultAddress: Address | undefined, chainId?: 84532 | 11155111) {
+export function useCampaignVault(vaultAddress: Address | undefined, chainId?: SupportedChainId) {
   // Read total assets in vault (TVL)
   const { data: totalAssets, refetch: refetchTotalAssets } = useReadContract({
     address: vaultAddress,

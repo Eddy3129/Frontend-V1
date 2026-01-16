@@ -532,6 +532,22 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
         </div>
 
         <div className="lg:col-span-3 space-y-6">
+          {/* Announcement Section */}
+          {/* <AnnouncementsCard /> */}
+
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
+            <h4 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Top Stakers
+            </h4>
+            <StakersLeaderboard
+              campaignId={id!}
+              maxStakers={5}
+              showViewAll={true}
+              chainId={supportedChainId}
+            />
+          </div>
+
           {/* Action Card */}
           <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
             {!address ? (
@@ -556,22 +572,6 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
                 onViewGovernance={() => setLeftTab('governance')}
               />
             ) : null}
-          </div>
-
-          {/* Announcement Section */}
-          <AnnouncementsCard />
-
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
-            <h4 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Top Stakers
-            </h4>
-            <StakersLeaderboard
-              campaignId={id!}
-              maxStakers={5}
-              showViewAll={true}
-              chainId={supportedChainId}
-            />
           </div>
 
           {/* Your Position Card */}
