@@ -1,4 +1,8 @@
 import { Progress } from '@/components/ui/progress'
+import { TrendingUp, Users, Globe, Twitter, CheckCircle2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { getGatewayUrl, parseCID, type CampaignMetadata } from '@/lib/pinata'
 
 interface GoalSummaryProps {
   raisedDisplay: number
@@ -7,6 +11,11 @@ interface GoalSummaryProps {
   endTime: Date
   isEthStrategy: boolean
   vaultTotalAssetsNum: number
+  apy: number
+  totalStakers: number
+  ngoName?: string
+  ngoWebsite?: string
+  metadata?: CampaignMetadata | null
 }
 
 export function GoalSummary({
@@ -16,39 +25,186 @@ export function GoalSummary({
   endTime,
   isEthStrategy,
   vaultTotalAssetsNum,
+  apy,
+  totalStakers,
+  ngoName,
+  ngoWebsite,
+  metadata,
 }: GoalSummaryProps) {
   const daysLeft = Math.max(0, Math.ceil((endTime.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
+  const logoUrl = metadata?.images?.[0] ? getGatewayUrl(parseCID(metadata.images[0])) : null
+
+  // Calculate circumference for circle (r=8, c=2*pi*8 ≈ 50.26)
+  const radius = 6
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference - (Math.min(progressDisplay, 100) / 100) * circumference
+
   return (
-    <div className="p-6 border-t border-border space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <p className="text-3xl font-bold text-primary">
-            ${raisedDisplay.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            raised of ${goal.toLocaleString()} goal
-            {isEthStrategy && (
-              <span className="block text-xs mt-0.5">
-                (
-                {vaultTotalAssetsNum.toLocaleString(undefined, {
-                  maximumFractionDigits: 4,
-                })}{' '}
-                ETH)
-              </span>
-            )}
-          </p>
+    <div className="px-6 py-5 border-t border-border space-y-5">
+      {/* Top Row: Progress & Days Left */}
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-foreground">{progressDisplay.toFixed(1)}%</span>
+          <span className="text-muted-foreground">funded</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-2xl font-bold text-teal-600">{progressDisplay.toFixed(1)}%</span>
-          <span className="text-sm text-muted-foreground">{daysLeft} Days left</span>
+        <div className="text-muted-foreground font-medium">{daysLeft} Days Left</div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="relative">
+        <Progress
+          value={progressDisplay}
+          className="h-3 bg-muted"
+          indicatorClassName="bg-gradient-to-r from-teal-500 to-emerald-500"
+        />
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-3 gap-4 pt-1 border-b border-border pb-5">
+        {/* Raised */}
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide font-medium">
+              Raised
+            </p>
+            {/* Circular Percentage */}
+            <div className="relative flex items-center justify-center">
+              <svg className="w-4 h-4 transform -rotate-90">
+                <circle
+                  className="text-muted/20"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r={radius}
+                  cx="8"
+                  cy="8"
+                />
+                <circle
+                  className="text-teal-500"
+                  strokeWidth="2"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r={radius}
+                  cx="8"
+                  cy="8"
+                />
+              </svg>
+            </div>
+          </div>
+          <p className="text-lg font-bold text-foreground">
+            ${raisedDisplay.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">of ${goal.toLocaleString()}</p>
+        </div>
+
+        {/* APY */}
+        <div className="relative group">
+          <p className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1 flex items-center gap-1">
+            APY <TrendingUp className="h-3 w-3 text-emerald-500" />
+          </p>
+          <p className="text-lg font-bold text-emerald-600">{apy.toFixed(1)}%</p>
+          <div className="absolute -bottom-1 right-0 opacity-20 scale-75 origin-bottom-right">
+            {/* Decorative mini graph */}
+            <svg width="40" height="16" className="text-emerald-500">
+              <polyline
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points="0,12 8,8 16,10 24,4 32,6 40,2"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* Stakers */}
+        <div>
+          <p className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1 flex items-center gap-1">
+            Stakers <Users className="h-3 w-3 text-blue-500" />
+          </p>
+          <p className="text-lg font-bold text-foreground">{totalStakers}</p>
+          <p className="text-xs text-muted-foreground">Active</p>
         </div>
       </div>
-      <Progress
-        value={progressDisplay}
-        className="h-3 bg-teal-100"
-        indicatorClassName="bg-gradient-to-r from-teal-400 to-teal-600"
-      />
+
+      {/* NGO Info */}
+      {/* NGO Information */}
+      <div className="flex items-center justify-between p-4 bg-muted/30 border border-border rounded-xl">
+        <div className="flex items-center gap-3">
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={metadata?.ngoName || ngoName}
+              className="w-10 h-10 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <span className="text-lg font-bold text-primary">
+                {(metadata?.ngoName || ngoName)?.slice(0, 1) || 'N'}
+              </span>
+            </div>
+          )}
+          <div>
+            <p className="font-semibold flex items-center gap-2">
+              {metadata?.ngoName || ngoName || 'Unknown NGO'}
+              <Badge
+                variant="outline"
+                className="text-xs bg-emerald-50 text-emerald-600 border-emerald-200"
+              >
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Verified
+              </Badge>
+            </p>
+            <p className="text-xs text-muted-foreground">Verified Organization</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {metadata?.socialLinks?.website && (
+            <a
+              href={
+                metadata.socialLinks.website.startsWith('http')
+                  ? metadata.socialLinks.website
+                  : `https://${metadata.socialLinks.website}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm" className="gap-2 rounded-lg">
+                <Globe className="h-4 w-4" />
+                Website
+              </Button>
+            </a>
+          )}
+          {metadata?.socialLinks?.twitter && (
+            <a
+              href={
+                metadata.socialLinks.twitter.startsWith('http')
+                  ? metadata.socialLinks.twitter
+                  : `https://${metadata.socialLinks.twitter}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm" className="gap-2 rounded-lg">
+                <Twitter className="h-4 w-4" />
+              </Button>
+            </a>
+          )}
+          {!metadata?.socialLinks?.website && ngoWebsite && (
+            <a href={ngoWebsite} target="_blank" rel="noreferrer">
+              <Button variant="outline" size="sm" className="gap-2 rounded-lg">
+                <Globe className="h-4 w-4" />
+                Website
+              </Button>
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

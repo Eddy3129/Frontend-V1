@@ -36,9 +36,8 @@ import { YourPositionCard } from './components/YourPositionCard'
 import { CheckpointVoting } from './components/CheckpointVoting'
 import { StakersLeaderboard } from './components/StakersLeaderboard'
 import { VotingPowerCard } from './components/VotingPowerCard'
-import { CampaignHeader } from './components/CampaignHeader'
+import { ConnectButton } from '@/components/wallet/ConnectButton'
 import { GoalSummary } from './components/GoalSummary'
-import { CampaignStats } from './components/CampaignStats'
 import { AboutSection } from './components/AboutSection'
 import { AnnouncementsCard } from './components/AnnouncementsCard'
 import { MilestonesTimeline } from './components/MilestonesTimeline'
@@ -457,9 +456,7 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
   const dailyYieldGeneration = (raisedUsd * (apy / 100)) / 365
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-      <CampaignHeader metadata={metadata} status={status} isLoading={isLoading} />
-
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
       {/* Main Content Grid - 70:30 */}
       <div className="grid lg:grid-cols-10 gap-6">
         {/* Left Column - 7/10 (70%) - Sharp corners merged block */}
@@ -480,44 +477,49 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
               endTime={endTime}
               isEthStrategy={isEthStrategy}
               vaultTotalAssetsNum={vaultTotalAssetsNum}
+              apy={apy}
+              totalStakers={totalStakers as number}
+              ngoName={metadata?.ngoName}
+              ngoWebsite={metadata?.socialLinks?.website}
+              metadata={metadata}
             />
 
             {/* About / Milestones Tabs */}
-            <div className="p-6 border-t border-border">
+            <div className="px-8 pt-4 pb-6 border-t border-border">
               <Tabs value={leftTab} onValueChange={setLeftTab}>
-                <TabsList className="w-full max-w-xs bg-muted/30 p-1 rounded-xl">
+                <TabsList className="w-fit bg-muted/20 p-1 rounded-2xl gap-1.5">
                   <TabsTrigger
                     value="about"
-                    className="text-sm flex-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    className="text-sm px-6 py-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md transition-all"
                   >
                     <Target className="h-4 w-4 mr-2" />
                     About
                   </TabsTrigger>
                   <TabsTrigger
                     value="milestones"
-                    className="text-sm flex-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    className="text-sm px-6 py-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md transition-all"
                   >
                     <TrendingUp className="h-4 w-4 mr-2" />
                     Milestones
                   </TabsTrigger>
                   <TabsTrigger
                     value="governance"
-                    className="text-sm flex-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    className="text-sm px-6 py-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-md transition-all"
                   >
                     <Vote className="h-4 w-4 mr-2" />
                     Governance
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="about" className="mt-4 space-y-4">
+                <TabsContent value="about" className="space-y-4">
                   <AboutSection metadata={metadata} isLoading={isLoading} />
                 </TabsContent>
 
-                <TabsContent value="milestones" className="mt-4">
+                <TabsContent value="milestones">
                   <MilestonesTimeline milestones={metadata?.milestones} raisedUsd={raisedUsd} />
                 </TabsContent>
 
-                <TabsContent value="governance" className="mt-4">
+                <TabsContent value="governance">
                   <CheckpointVoting
                     campaignId={id!}
                     milestones={metadata?.milestones}
@@ -530,35 +532,30 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          {/* Stats Card */}
-          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-lg">
-            <CampaignStats
-              progressDisplay={progressDisplay}
-              raisedDisplay={raisedDisplay}
-              isEthStrategy={isEthStrategy}
-              vaultTotalAssetsNum={vaultTotalAssetsNum}
-              apy={apy}
-              totalStakers={totalStakers as number}
-              isStakersLoading={isStakersLoading}
-            />
-
-            <div className="px-6 pb-6 space-y-4">
+          {/* Action Card */}
+          <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+            {!address ? (
+              <ConnectButton
+                className="w-full h-12 text-base font-semibold rounded-xl shadow-md"
+                label="Connect Wallet"
+              />
+            ) : (
               <StakeButton status={status} onClick={() => setIsStakeModalOpen(true)} />
+            )}
 
-              {/* Voting Power Card */}
-              {address && stakeWeight && BigInt(String(stakeWeight)) > 0n ? (
-                <VotingPowerCard
-                  votingPower={BigInt(String(stakeWeight))}
-                  votingPowerPercent={
-                    parsedCampaignData?.totalStaked &&
-                    BigInt(String(parsedCampaignData.totalStaked)) > 0n
-                      ? (Number(stakeWeight) / Number(parsedCampaignData.totalStaked)) * 100
-                      : 0
-                  }
-                  onViewGovernance={() => setLeftTab('governance')}
-                />
-              ) : null}
-            </div>
+            {/* Voting Power Card */}
+            {address && stakeWeight && BigInt(String(stakeWeight)) > 0n ? (
+              <VotingPowerCard
+                votingPower={BigInt(String(stakeWeight))}
+                votingPowerPercent={
+                  parsedCampaignData?.totalStaked &&
+                  BigInt(String(parsedCampaignData.totalStaked)) > 0n
+                    ? (Number(stakeWeight) / Number(parsedCampaignData.totalStaked)) * 100
+                    : 0
+                }
+                onViewGovernance={() => setLeftTab('governance')}
+              />
+            ) : null}
           </div>
 
           {/* Announcement Section */}

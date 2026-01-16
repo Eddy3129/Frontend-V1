@@ -57,23 +57,25 @@ export function ImageCarousel({
   return (
     <div className="relative group">
       {/* Main Image Container - No rounded corners */}
-      <div className="relative h-80 md:h-96 w-full overflow-hidden bg-muted">
+      <div className="relative h-80 md:h-96 w-full overflow-hidden bg-black">
         {images.map((src, index) => (
           <div
             key={index}
             className={cn(
-              'absolute inset-0 transition-opacity duration-500 ease-in-out',
+              'absolute inset-0 transition-opacity duration-500 ease-in-out flex items-center justify-center',
               index === currentIndex ? 'opacity-100' : 'opacity-0 pointer-events-none'
             )}
           >
-            <Image
-              src={src}
-              alt={`${campaignName || 'Campaign'} - Image ${index + 1}`}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 800px"
-              className="object-cover"
-              priority={index === 0}
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={src}
+                alt={`${campaignName || 'Campaign'} - Image ${index + 1}`}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 800px"
+                className="object-contain"
+                priority={index === 0}
+              />
+            </div>
           </div>
         ))}
 

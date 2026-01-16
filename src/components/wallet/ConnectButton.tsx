@@ -21,7 +21,12 @@ import {
 import { Wallet, ChevronDown, LogOut, Copy, ExternalLink, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function ConnectButton() {
+interface ConnectButtonProps {
+  className?: string
+  label?: string
+}
+
+export function ConnectButton({ className, label = 'Connect' }: ConnectButtonProps) {
   const { address, isConnected, isConnecting } = useConnection()
   const connect = useConnect()
   const connectors = useConnectors()
@@ -54,11 +59,11 @@ export function ConnectButton() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            className="gradient-give text-white glow-give hover:scale-105 transition-transform"
+            className={`gradient-give text-white glow-give hover:scale-105 transition-transform ${className}`}
             disabled={isConnecting}
           >
             <Wallet className="mr-2 h-4 w-4" />
-            {isConnecting ? 'Connecting...' : 'Connect'}
+            {isConnecting ? 'Connecting...' : label}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
