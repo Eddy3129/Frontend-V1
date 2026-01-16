@@ -2,25 +2,12 @@ import { useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { useStakers } from '@/hooks/useStakers'
 import { Badge } from '@/components/ui/badge'
-import {
-  Users,
-  ExternalLink,
-  Crown,
-  Medal,
-  Award,
-  Wallet,
-  PiggyBank,
-  ArrowUpCircle,
-  ArrowDownCircle,
-} from 'lucide-react'
+import { Users, ExternalLink, Crown, Medal, Award, Wallet, PiggyBank } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { baseSepolia, ethereumSepolia } from '@/config/chains'
 import { Button } from '@/components/ui/button'
 import { CampaignStatus } from '@/hooks/useCampaign'
-import { useCampaignActivity } from '@/hooks/useCampaignActivity'
-import { formatDistanceToNow } from 'date-fns'
-import { History, ArrowUpRight, CheckCircle2, XCircle } from 'lucide-react'
 import { formatUnits } from 'viem'
 import { ConnectButton } from '@/components/wallet/ConnectButton'
 
@@ -46,11 +33,8 @@ export function StakersLeaderboard({
   onStake,
 }: StakersLeaderboardProps) {
   const { address: userAddress } = useAccount()
-  const { topStakers, totalStakers, getUserRank, stakers, isLoading, error } = useStakers(
-    campaignId,
-    chainId
-  )
-  const { data: activities } = useCampaignActivity(campaignId)
+  const { topStakers, totalStakers, getUserRank, stakers, isLoading, error, decimals, symbol } =
+    useStakers(campaignId, chainId)
 
   const displayStakers = useMemo(() => {
     return topStakers.slice(0, maxStakers)
@@ -134,83 +118,6 @@ export function StakersLeaderboard({
         ) : (
           <ConnectButton className="w-full" label="Connect Wallet" />
         )}
-      </div>
-
-      {/* Recent Campaign Activity */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <History className="h-4 w-4" />
-            Recent Activity
-          </h4>
-        </div>
-
-        <div className="bg-muted/10 border border-border/50 rounded-xl overflow-hidden">
-          {activities && activities.length > 0 ? (
-            <div className="divide-y divide-border/30">
-              {activities.slice(0, 5).map((activity) => (
-                <div key={activity.id} className="p-3 hover:bg-muted/20 transition-colors group">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex gap-3">
-                      <div
-                        className={cn(
-                          'w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm',
-                          activity.type === 'DEPOSIT' && 'bg-emerald-500/10 text-emerald-600',
-                          activity.type === 'WITHDRAW' && 'bg-amber-500/10 text-amber-600',
-                          activity.type === 'VOTE' && 'bg-blue-500/10 text-blue-600'
-                        )}
-                      >
-                        {activity.type === 'DEPOSIT' && <ArrowUpCircle className="h-4 w-4" />}
-                        {activity.type === 'WITHDRAW' && <ArrowDownCircle className="h-4 w-4" />}
-                        {activity.type === 'VOTE' &&
-                          (activity.support ? (
-                            <CheckCircle2 className="h-4 w-4" />
-                          ) : (
-                            <XCircle className="h-4 w-4" />
-                          ))}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-foreground capitalize">
-                            {activity.type.toLowerCase()}
-                          </span>
-                          {activity.amount && (
-                            <span className="text-[11px] font-black text-primary">
-                              {Number(formatUnits(BigInt(activity.amount), 18)).toFixed(2)}{' '}
-                              {activity.type === 'VOTE' ? 'Power' : ''}
-                            </span>
-                          )}
-                          <span className="text-[10px] text-muted-foreground">by</span>
-                          <span className="text-[10px] font-bold text-foreground">
-                            {truncateAddress(activity.supporterId)}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {formatDistanceToNow(parseInt(activity.blockTimestamp) * 1000, {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <Link
-                      href={`${explorerUrl}/tx/${activity.transactionHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <ArrowUpRight className="h-3 w-3 text-muted-foreground hover:text-primary transition-colors" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center bg-muted/5">
-              <History className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-              <p className="text-xs text-muted-foreground">No recent activity found</p>
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="space-y-3">

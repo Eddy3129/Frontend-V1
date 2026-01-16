@@ -171,5 +171,6 @@ export function useStakers(campaignId: `0x${string}` | undefined, chainId?: numb
     error: ponderError || campaignError,
     totalStaked: totalStakedFromContract,
     symbol: strategyInfo.symbol,
+    decimals: strategyInfo.decimals,
   }
 }

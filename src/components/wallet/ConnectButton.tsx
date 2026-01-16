@@ -94,11 +94,6 @@ export function ConnectButton({ className, label }: ConnectButtonProps) {
                   >
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                     {account.displayName}
-                    {account.displayBalance && (
-                      <span className="hidden md:inline text-muted-foreground ml-1">
-                        ({account.displayBalance})
-                      </span>
-                    )}
                   </button>
                 </div>
               )

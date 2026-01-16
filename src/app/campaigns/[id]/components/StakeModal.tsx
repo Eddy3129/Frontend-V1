@@ -102,14 +102,14 @@ export function StakeModal({
                 value="increase"
                 className="rounded-lg gap-2 data-[state=active]:bg-background"
               >
-                <ArrowUpCircle className="h-4 w-4" />
+                <ArrowDownCircle className="h-4 w-4" />
                 Increase
               </TabsTrigger>
               <TabsTrigger
                 value="withdraw"
-                className="rounded-lg gap-2 data-[state=active]:bg-background text-destructive data-[state=active]:text-destructive"
+                className="rounded-lg gap-2 data-[state=active]:bg-background text-red-500 data-[state=active]:text-red-500"
               >
-                <ArrowDownCircle className="h-4 w-4" />
+                <ArrowUpCircle className="h-4 w-4" />
                 Withdraw
               </TabsTrigger>
             </TabsList>

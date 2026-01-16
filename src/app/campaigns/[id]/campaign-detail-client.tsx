@@ -42,6 +42,7 @@ import { AboutSection } from './components/AboutSection'
 import { AnnouncementsCard } from './components/AnnouncementsCard'
 import { MilestonesTimeline } from './components/MilestonesTimeline'
 import { StakeButton } from './components/StakeButton'
+import { RecentActivity } from './components/RecentActivity'
 
 interface CampaignDetailClientProps {
   campaignId: string
@@ -469,10 +470,10 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
       {/* Main Content Grid - 70:30 */}
-      <div className="grid lg:grid-cols-10 gap-6">
+      <div className="grid lg:grid-cols-10 gap-6 items-start">
         {/* Left Column - 7/10 (70%) - Sharp corners merged block */}
-        <div className="lg:col-span-7">
-          <div className="bg-card border border-border shadow-lg overflow-hidden">
+        <div className="lg:col-span-7 h-full">
+          <div className="bg-card border border-border shadow-lg overflow-hidden h-full flex flex-col">
             {/* Image with Title Overlay */}
             <ImageCarousel
               images={carouselImages}
@@ -496,8 +497,8 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
             />
 
             {/* About / Milestones Tabs */}
-            <div className="px-8 pt-4 pb-6 border-t border-border">
-              <Tabs value={leftTab} onValueChange={setLeftTab}>
+            <div className="px-8 pt-4 pb-6 border-t border-border flex-1">
+              <Tabs value={leftTab} onValueChange={setLeftTab} className="h-full flex flex-col">
                 <TabsList className="w-fit bg-muted/20 p-1 rounded-2xl gap-1.5">
                   <TabsTrigger
                     value="about"
@@ -522,15 +523,15 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="about" className="space-y-4">
+                <TabsContent value="about" className="space-y-4 flex-1">
                   <AboutSection metadata={metadata} isLoading={isLoading} />
                 </TabsContent>
 
-                <TabsContent value="milestones">
+                <TabsContent value="milestones" className="flex-1">
                   <MilestonesTimeline milestones={metadata?.milestones} raisedUsd={raisedUsd} />
                 </TabsContent>
 
-                <TabsContent value="governance">
+                <TabsContent value="governance" className="flex-1">
                   <CheckpointVoting
                     campaignId={id!}
                     milestones={metadata?.milestones}
@@ -542,8 +543,9 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
           </div>
         </div>
 
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 flex flex-col gap-6 self-stretch">
           {/* Announcement Section */}
+          {/* <AnnouncementsCard /> */}
 
           {/* Leaderboard and Staking Action */}
           <div className="bg-card border border-border rounded-2xl p-6 shadow-lg">
@@ -557,8 +559,17 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
             />
           </div>
 
+          {/* Recent Activity Section */}
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-lg flex-1 flex flex-col min-h-[400px]">
+            <RecentActivity
+              campaignId={id!}
+              vaultAddress={effectiveVault}
+              chainId={supportedChainId}
+            />
+          </div>
+
           {/* Voting Power Card */}
-          {address && stakeWeight && BigInt(String(stakeWeight)) > 0n && (
+          {address && !!stakeWeight && BigInt(String(stakeWeight)) > 0n && (
             <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
               <VotingPowerCard
                 votingPower={BigInt(String(stakeWeight))}
