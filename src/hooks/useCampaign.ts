@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useMemo } from 'react'
 import {
   useReadContract,
   useReadContracts,
@@ -9,7 +9,7 @@ import {
 import { keccak256, toHex, type Address, type Abi } from 'viem'
 import { CAMPAIGN_REGISTRY_ABI, CAMPAIGN_VAULT_FACTORY_ABI } from '@/lib/abi'
 import { getContracts } from '@/config/contracts'
-import { baseSepolia } from '@/config/chains'
+import { baseSepolia, ethereumSepolia } from '@/config/chains'
 
 // Campaign status enum matching the contract
 export enum CampaignStatus {
@@ -81,47 +81,73 @@ export interface CampaignInput {
   fundraisingEnd: bigint
 }
 
-// Legacy interface for backward compatibility
-export interface Campaign {
-  id: bigint
-  ngoId: bigint
-  proposer: Address
-  metadataURI: string
-  fundingGoal: bigint
-  currentFunding: bigint
-  status: CampaignStatus
-  startTime: bigint
-  endTime: bigint
-  checkpoints: Checkpoint[]
-}
-
 export function useCampaign() {
-  const { address: userAddress, chainId } = useConnection()
-  const contracts = getContracts(chainId ?? baseSepolia.id)
-  const registryAddress = contracts?.campaignRegistry
+  const { address: userAddress, chainId: walletChainId } = useConnection()
 
-  // Read all campaign IDs
-  const { data: campaignIdsData, refetch: refetchCount } = useReadContract({
-    address: registryAddress,
+  // Fetch from BOTH chains - no wallet required!
+  const ethereumContracts = getContracts(ethereumSepolia.id)
+  const baseContracts = getContracts(baseSepolia.id)
+
+  // Get campaign IDs from Ethereum Sepolia
+  const { data: campaignIdsDataEth, refetch: refetchCountEth } = useReadContract({
+    address: ethereumContracts?.campaignRegistry,
     abi: CAMPAIGN_REGISTRY_ABI,
     functionName: 'listCampaignIds',
+    chainId: ethereumSepolia.id,
     query: {
-      enabled: !!registryAddress && registryAddress !== '0x',
+      enabled: !!ethereumContracts?.campaignRegistry && ethereumContracts.campaignRegistry !== '0x',
     },
   })
 
-  const campaignIds = campaignIdsData as `0x${string}`[] | undefined
-  const campaignCount = campaignIds ? BigInt(campaignIds.length) : 0n
+  // Get campaign IDs from Base Sepolia
+  const { data: campaignIdsDataBase, refetch: refetchCountBase } = useReadContract({
+    address: baseContracts?.campaignRegistry,
+    abi: CAMPAIGN_REGISTRY_ABI,
+    functionName: 'listCampaignIds',
+    chainId: baseSepolia.id,
+    query: {
+      enabled: !!baseContracts?.campaignRegistry && baseContracts.campaignRegistry !== '0x',
+    },
+  })
 
-  // Read minimum submission deposit
-  const { data: minDeposit } = useReadContract({
-    address: registryAddress,
+  // Merge campaign IDs from both chains
+  const campaignIds = useMemo(() => {
+    const ethIds = (campaignIdsDataEth as `0x${string}`[] | undefined) || []
+    const baseIds = (campaignIdsDataBase as `0x${string}`[] | undefined) || []
+    return [...ethIds, ...baseIds]
+  }, [campaignIdsDataEth, campaignIdsDataBase])
+
+  const campaignCount = BigInt(campaignIds.length)
+
+  const refetchCount = async () => {
+    await Promise.all([refetchCountEth(), refetchCountBase()])
+  }
+
+  // For backward compatibility, use the first chain that has a registry
+  const registryAddress = ethereumContracts?.campaignRegistry || baseContracts?.campaignRegistry
+
+  // Read minimum submission deposit (from Ethereum Sepolia, or fallback to Base)
+  const { data: minDepositEth } = useReadContract({
+    address: ethereumContracts?.campaignRegistry,
     abi: CAMPAIGN_REGISTRY_ABI,
     functionName: 'MIN_SUBMISSION_DEPOSIT',
+    chainId: ethereumSepolia.id,
     query: {
-      enabled: !!registryAddress && registryAddress !== '0x',
+      enabled: !!ethereumContracts?.campaignRegistry && ethereumContracts.campaignRegistry !== '0x',
     },
   })
+
+  const { data: minDepositBase } = useReadContract({
+    address: baseContracts?.campaignRegistry,
+    abi: CAMPAIGN_REGISTRY_ABI,
+    functionName: 'MIN_SUBMISSION_DEPOSIT',
+    chainId: baseSepolia.id,
+    query: {
+      enabled: !!baseContracts?.campaignRegistry && baseContracts.campaignRegistry !== '0x',
+    },
+  })
+
+  const minDeposit = minDepositEth || minDepositBase
 
   // Get campaign by ID
   const useGetCampaign = (campaignId: `0x${string}` | undefined) => {
@@ -130,6 +156,7 @@ export function useCampaign() {
       abi: CAMPAIGN_REGISTRY_ABI,
       functionName: 'getCampaign',
       args: campaignId ? [campaignId] : undefined,
+      chainId: ethereumSepolia.id, // TODO: Could enhance to try both chains
       query: {
         enabled: !!registryAddress && registryAddress !== '0x' && !!campaignId,
       },
@@ -149,6 +176,7 @@ export function useCampaign() {
         abi: CAMPAIGN_REGISTRY_ABI as Abi,
         functionName: 'getCampaign',
         args: [id],
+        chainId: ethereumSepolia.id, // TODO: Could enhance to fetch from both chains
       })),
       query: {
         enabled: !!registryAddress && registryAddress !== '0x' && idsToFetch.length > 0,
@@ -498,7 +526,7 @@ export function useCampaign() {
   }
 
   const deployCampaignVault = (params: DeployVaultParams) => {
-    const factoryAddress = contracts?.campaignVaultFactory
+    const factoryAddress = ethereumContracts?.campaignVaultFactory
     if (!factoryAddress || factoryAddress === '0x0000000000000000000000000000000000000000') {
       console.error('Factory address not found')
       return

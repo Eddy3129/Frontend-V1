@@ -37,7 +37,7 @@ const statusColors: Record<NGOStatus, string> = {
 
 export function NGOProfileClient({ address }: { address: string }) {
   const { useGetNGOInfo } = useNGO()
-  const { data: ngoInfo, isLoading } = useGetNGOInfo(address as Address)
+  const { data: ngoInfo } = useGetNGOInfo(address as Address)
   const [metadata, setMetadata] = useState<NGOIPFSMetadata | null>(null)
   const [isMetadataLoading, setIsMetadataLoading] = useState(false)
 
@@ -57,7 +57,7 @@ export function NGOProfileClient({ address }: { address: string }) {
     }
   }, [ngoInfo])
 
-  if (isLoading || isMetadataLoading) {
+  if (isMetadataLoading) {
     return (
       <div className="max-w-5xl mx-auto px-6 py-12 space-y-8">
         <div className="h-8 w-32 bg-muted rounded animate-pulse" />

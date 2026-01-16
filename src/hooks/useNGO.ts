@@ -1,8 +1,14 @@
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi'
+import { useMemo } from 'react'
+import {
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useConnection,
+} from 'wagmi'
 import { keccak256, toHex, type Address } from 'viem'
 import { NGO_REGISTRY_ABI } from '@/lib/abi'
 import { getContracts } from '@/config/contracts'
-import { baseSepolia } from '@/config/chains'
+import { baseSepolia, ethereumSepolia } from '@/config/chains'
 
 export enum NGOStatus {
   Pending = 0,
@@ -22,70 +28,134 @@ export interface NGOInfo {
   isActive: boolean
 }
 
-// Legacy interface for backward compatibility
-export interface NGO {
-  id: bigint
-  name: string
-  metadataURI: string
-  wallet: Address
-  status: NGOStatus
-  registeredAt: bigint
-}
-
 export function useNGO() {
-  const { address: userAddress, chainId } = useAccount()
-  // Default to baseSepolia if chainId not available (for non-connected users)
-  const activeChainId = chainId ?? baseSepolia.id
-  const contracts = getContracts(activeChainId)
-  const registryAddress = contracts?.ngoRegistry
+  const { address: userAddress, chainId: walletChainId, isConnected } = useConnection()
 
-  // Get approved NGOs list - works even without wallet connection
+  // Fetch from BOTH chains - no wallet required!
+  const ethereumContracts = getContracts(ethereumSepolia.id)
+  const baseContracts = getContracts(baseSepolia.id)
+
+  // Get approved NGOs from Ethereum Sepolia
   const {
-    data: approvedNGOs,
-    refetch: refetchApprovedNGOs,
-    isLoading: isApprovedNGOsLoading,
-    isFetched: isApprovedNGOsFetched,
+    data: approvedNGOsEth,
+    refetch: refetchEth,
+    isLoading: isLoadingEth,
   } = useReadContract({
-    address: registryAddress,
+    address: ethereumContracts?.ngoRegistry,
     abi: NGO_REGISTRY_ABI,
     functionName: 'approvedNGOs',
+    chainId: ethereumSepolia.id,
     query: {
-      enabled: !!registryAddress && registryAddress !== '0x',
+      enabled: !!ethereumContracts?.ngoRegistry && ethereumContracts.ngoRegistry !== '0x',
     },
   })
 
-  // Get current NGO (for payout routing)
-  const { data: currentNGO, refetch: refetchCurrentNGO } = useReadContract({
-    address: registryAddress,
+  // Get approved NGOs from Base Sepolia
+  const {
+    data: approvedNGOsBase,
+    refetch: refetchBase,
+    isLoading: isLoadingBase,
+  } = useReadContract({
+    address: baseContracts?.ngoRegistry,
+    abi: NGO_REGISTRY_ABI,
+    functionName: 'approvedNGOs',
+    chainId: baseSepolia.id,
+    query: {
+      enabled: !!baseContracts?.ngoRegistry && baseContracts.ngoRegistry !== '0x',
+    },
+  })
+
+  // Merge NGOs from both chains (deduplicate by address)
+  const approvedNGOs = useMemo(() => {
+    const ethNGOs = (approvedNGOsEth as Address[] | undefined) || []
+    const baseNGOs = (approvedNGOsBase as Address[] | undefined) || []
+    const allNGOs = [...ethNGOs, ...baseNGOs]
+    // Deduplicate
+    return Array.from(new Set(allNGOs))
+  }, [approvedNGOsEth, approvedNGOsBase])
+
+  const refetchApprovedNGOs = async () => {
+    await Promise.all([refetchEth(), refetchBase()])
+  }
+
+  const isApprovedNGOsLoading = isLoadingEth || isLoadingBase
+  const isApprovedNGOsFetched = !!approvedNGOsEth || !!approvedNGOsBase
+
+  // For backward compatibility, use the first chain that has a registry
+  const registryAddress = ethereumContracts?.ngoRegistry || baseContracts?.ngoRegistry
+
+  // Get current NGO (try Ethereum Sepolia first, fallback to Base)
+  const { data: currentNGOEth } = useReadContract({
+    address: ethereumContracts?.ngoRegistry,
     abi: NGO_REGISTRY_ABI,
     functionName: 'currentNGO',
+    chainId: ethereumSepolia.id,
     query: {
-      enabled: !!registryAddress && registryAddress !== '0x',
+      enabled: !!ethereumContracts?.ngoRegistry && ethereumContracts.ngoRegistry !== '0x',
     },
   })
 
-  // Check if address is approved NGO
+  const { data: currentNGOBase, refetch: refetchCurrentNGO } = useReadContract({
+    address: baseContracts?.ngoRegistry,
+    abi: NGO_REGISTRY_ABI,
+    functionName: 'currentNGO',
+    chainId: baseSepolia.id,
+    query: {
+      enabled: !!baseContracts?.ngoRegistry && baseContracts.ngoRegistry !== '0x',
+    },
+  })
+
+  const currentNGO = currentNGOEth || currentNGOBase
+
+  // Check if address is approved NGO (try BOTH chains)
   const useIsApproved = (ngoAddress?: Address) => {
-    return useReadContract({
-      address: registryAddress,
+    const { data: isApprovedEth } = useReadContract({
+      address: ethereumContracts?.ngoRegistry,
       abi: NGO_REGISTRY_ABI,
       functionName: 'isApproved',
       args: [ngoAddress ?? userAddress!],
+      chainId: ethereumSepolia.id,
       query: {
-        enabled: !!registryAddress && registryAddress !== '0x' && !!(ngoAddress ?? userAddress),
+        enabled:
+          !!ethereumContracts?.ngoRegistry &&
+          ethereumContracts.ngoRegistry !== '0x' &&
+          !!(ngoAddress ?? userAddress),
       },
     })
+
+    const { data: isApprovedBase } = useReadContract({
+      address: baseContracts?.ngoRegistry,
+      abi: NGO_REGISTRY_ABI,
+      functionName: 'isApproved',
+      args: [ngoAddress ?? userAddress!],
+      chainId: baseSepolia.id,
+      query: {
+        enabled:
+          !!baseContracts?.ngoRegistry &&
+          baseContracts.ngoRegistry !== '0x' &&
+          !!(ngoAddress ?? userAddress),
+      },
+    })
+
+    // Return object with data being true if approved on EITHER chain
+    return {
+      data: isApprovedEth || isApprovedBase,
+    }
   }
 
-  // Get NGO info by address
+  // Get NGO info by address (try BOTH chains)
   const useGetNGOInfo = (ngoAddress?: Address) => {
-    return useReadContract({
-      address: registryAddress,
+    const { data: ngoInfoEth } = useReadContract({
+      address: ethereumContracts?.ngoRegistry,
       abi: NGO_REGISTRY_ABI,
       functionName: 'ngoInfo',
       args: [ngoAddress ?? userAddress!],
+      chainId: ethereumSepolia.id,
       query: {
-        enabled: !!registryAddress && registryAddress !== '0x' && !!(ngoAddress ?? userAddress),
+        enabled:
+          !!ethereumContracts?.ngoRegistry &&
+          ethereumContracts.ngoRegistry !== '0x' &&
+          !!(ngoAddress ?? userAddress),
         select: (data: unknown) => {
           const typedData = data as readonly [
             string,
@@ -97,7 +167,6 @@ export function useNGO() {
             bigint,
             boolean,
           ]
-          // Handle array return from contract
           if (Array.isArray(typedData)) {
             return {
               metadataCid: typedData[0],
@@ -114,17 +183,62 @@ export function useNGO() {
         },
       },
     })
+
+    const { data: ngoInfoBase } = useReadContract({
+      address: baseContracts?.ngoRegistry,
+      abi: NGO_REGISTRY_ABI,
+      functionName: 'ngoInfo',
+      args: [ngoAddress ?? userAddress!],
+      chainId: baseSepolia.id,
+      query: {
+        enabled:
+          !!baseContracts?.ngoRegistry &&
+          baseContracts.ngoRegistry !== '0x' &&
+          !!(ngoAddress ?? userAddress),
+        select: (data: unknown) => {
+          const typedData = data as readonly [
+            string,
+            string,
+            Address,
+            bigint,
+            bigint,
+            bigint,
+            bigint,
+            boolean,
+          ]
+          if (Array.isArray(typedData)) {
+            return {
+              metadataCid: typedData[0],
+              kycHash: typedData[1],
+              attestor: typedData[2],
+              createdAt: typedData[3],
+              updatedAt: typedData[4],
+              version: typedData[5],
+              totalReceived: typedData[6],
+              isActive: typedData[7],
+            }
+          }
+          return typedData as unknown as NGOInfo
+        },
+      },
+    })
+
+    // Return first successful result from either chain
+    return {
+      data: ngoInfoEth || ngoInfoBase,
+    }
   }
 
   // Legacy: Get NGO count (for backward compatibility with NGO list)
   const ngoCount = Array.isArray(approvedNGOs) ? BigInt(approvedNGOs.length) : BigInt(0)
 
-  // Legacy: Get active NGOs
+  // Legacy: Get active NGOs (returns merged result from both chains)
   const useGetActiveNGOs = () => {
     return useReadContract({
       address: registryAddress,
       abi: NGO_REGISTRY_ABI,
       functionName: 'approvedNGOs',
+      chainId: ethereumSepolia.id, // Use Ethereum Sepolia
       query: {
         enabled: !!registryAddress && registryAddress !== '0x',
       },
@@ -141,6 +255,7 @@ export function useNGO() {
       abi: NGO_REGISTRY_ABI,
       functionName: 'ngoInfo',
       args: ngoAddress ? [ngoAddress] : undefined,
+      chainId: ethereumSepolia.id, // Use Ethereum Sepolia
       query: {
         enabled: !!registryAddress && registryAddress !== '0x' && !!ngoAddress,
       },

@@ -14,9 +14,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Plus, Search, Heart, Filter, Shield, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
-import { useAccount, useReadContract } from 'wagmi'
+import { useConnection, useReadContract } from 'wagmi'
 import { getContracts, ROLES } from '@/config/contracts'
-import { baseSepolia } from '@/config/chains'
+import { ethereumSepolia } from '@/config/chains'
 import { ACL_MANAGER_ABI } from '@/lib/abi'
 import { formatUnits } from 'viem'
 
@@ -32,26 +32,27 @@ export function CampaignsClient() {
     useGetActiveCampaigns,
     campaignIds: rawCampaignIds,
   } = useCampaign()
-  const { address, chainId } = useAccount()
+  const { address } = useConnection()
 
   const count = Number(campaignCount ?? 0n)
-  const activeChainId = chainId ?? baseSepolia.id
-  const contracts = getContracts(activeChainId)
+  // Use Ethereum Sepolia for admin role checks (adjust if your admin roles are on Base)
+  const contracts = getContracts(ethereumSepolia.id)
 
-  // Check if user is campaign admin
+  // Check if user is campaign admin (only when wallet is connected)
   const { data: isAdminData } = useReadContract({
     address: contracts?.aclManager,
     abi: ACL_MANAGER_ABI,
     functionName: 'hasRole',
     args: [ROLES.CAMPAIGN_ADMIN, address ?? '0x0000000000000000000000000000000000000000'],
+    chainId: ethereumSepolia.id,
     query: {
-      enabled: !!contracts?.aclManager && !!address,
+      enabled: !!contracts?.aclManager && !!address, // Only check when connected
     },
   })
 
   const isAdmin = Boolean(isAdminData)
 
-  // Get all campaigns (up to 50)
+  // Get all campaigns (up to 50) - No wallet required for public viewing
   const { data: allCampaigns } = useGetCampaigns(0, Math.min(count, 50))
   const { data: _activeCampaigns } = useGetActiveCampaigns()
 
@@ -132,12 +133,10 @@ export function CampaignsClient() {
           <div className="text-right border border-border rounded-lg px-4 py-3 bg-card/50">
             <p className="text-sm text-muted-foreground">Total Staked</p>
             <p className="text-2xl font-bold">${totalStaked.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">across all campaigns</p>
           </div>
           <div className="text-right border border-border rounded-lg px-4 py-3 bg-card/50">
             <p className="text-sm text-muted-foreground">Active Campaigns</p>
             <p className="text-2xl font-bold">{activeCampaignCount}</p>
-            <p className="text-xs text-muted-foreground">live now</p>
           </div>
         </div>
       </div>

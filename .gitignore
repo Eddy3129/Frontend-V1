@@ -118,3 +118,7 @@ storybook-static/
 # Cypress
 cypress/videos/
 cypress/screenshots/
+
+#agent skills
+.agent
+.claude

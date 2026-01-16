@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount, useReadContract } from 'wagmi'
+import { useConnection, useReadContract } from 'wagmi'
 import { useNGO, NGOStatus, type NGOInfo } from '@/hooks/useNGO'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +11,7 @@ import Link from 'next/link'
 import type { Address } from 'viem'
 import { ACL_MANAGER_ABI, NGO_REGISTRY_ABI } from '@/lib/abi'
 import { getContracts } from '@/config/contracts'
-import { baseSepolia } from '@/config/chains'
+import { ethereumSepolia } from '@/config/chains'
 
 const statusColors: Record<NGOStatus, string> = {
   [NGOStatus.Pending]: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
@@ -23,19 +23,22 @@ const statusColors: Record<NGOStatus, string> = {
 export function NGOsClient() {
   const { approvedNGOs, useGetActiveNGOs } = useNGO()
   const { data: activeNGOs } = useGetActiveNGOs()
-  const { address, chainId, isConnected } = useAccount()
-  const contracts = getContracts(chainId ?? baseSepolia.id)
+  const { address, isConnected } = useConnection()
+  // Use Ethereum Sepolia for admin role checks (adjust if your admin roles are on Base)
+  const contracts = getContracts(ethereumSepolia.id)
 
-  // Fetch NGO_MANAGER_ROLE from registry, then check if connected wallet has it
+  // Fetch NGO_MANAGER_ROLE from registry (always available)
   const { data: ngoManagerRole } = useReadContract({
     address: contracts?.ngoRegistry,
     abi: NGO_REGISTRY_ABI,
     functionName: 'NGO_MANAGER_ROLE',
+    chainId: ethereumSepolia.id,
     query: {
-      enabled: !!contracts?.ngoRegistry,
+      enabled: !!contracts?.ngoRegistry, // Always fetch role, no wallet required
     },
   })
 
+  // Only check if connected wallet has admin role when wallet is connected
   const { data: hasNGOManagerRole } = useReadContract({
     address: contracts?.aclManager,
     abi: ACL_MANAGER_ABI,
@@ -44,14 +47,15 @@ export function NGOsClient() {
       ngoManagerRole as `0x${string}`,
       address ?? '0x0000000000000000000000000000000000000000',
     ],
+    chainId: ethereumSepolia.id,
     query: {
-      enabled: !!contracts?.aclManager && !!address && isConnected && !!ngoManagerRole,
+      enabled: !!contracts?.aclManager && !!address && isConnected && !!ngoManagerRole, // Only when connected
     },
   })
 
   const showAdminPanelCTA = Boolean(hasNGOManagerRole)
 
-  // approvedNGOs is an array of addresses
+  // approvedNGOs is an array of addresses - No wallet required for public viewing
   const ngoAddresses = (approvedNGOs as Address[] | undefined) ?? []
   const count = ngoAddresses.length
 

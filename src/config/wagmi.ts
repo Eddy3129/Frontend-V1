@@ -9,10 +9,15 @@ export const wagmiConfig = createConfig({
     storage: cookieStorage,
   }),
   ssr: true,
+  batch: {
+    multicall: true,
+  },
   transports: {
-    [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC || 'https://sepolia.base.org'),
+    [baseSepolia.id]: http(
+      process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC || 'https://base-sepolia-rpc.publicnode.com'
+    ),
     [ethereumSepolia.id]: http(
-      process.env.NEXT_PUBLIC_ETH_SEPOLIA_RPC || 'https://rpc.sepolia.org'
+      process.env.NEXT_PUBLIC_ETH_SEPOLIA_RPC || 'https://ethereum-sepolia-rpc.publicnode.com'
     ),
   },
 })
