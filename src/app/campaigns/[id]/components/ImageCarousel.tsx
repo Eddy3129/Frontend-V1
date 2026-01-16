@@ -70,6 +70,7 @@ export function ImageCarousel({
               src={src}
               alt={`${campaignName || 'Campaign'} - Image ${index + 1}`}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 800px"
               className="object-cover"
               priority={index === 0}
             />

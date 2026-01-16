@@ -149,18 +149,47 @@ export function useCampaign() {
 
   const minDeposit = minDepositEth || minDepositBase
 
-  // Get campaign by ID
+  // Get campaign by ID - queries both chains and returns chainId where found
   const useGetCampaign = (campaignId: `0x${string}` | undefined) => {
-    return useReadContract({
-      address: registryAddress,
-      abi: CAMPAIGN_REGISTRY_ABI,
-      functionName: 'getCampaign',
-      args: campaignId ? [campaignId] : undefined,
-      chainId: ethereumSepolia.id, // TODO: Could enhance to try both chains
+    // Query both chains in parallel
+    const results = useReadContracts({
+      contracts: [
+        {
+          address: ethereumContracts?.campaignRegistry,
+          abi: CAMPAIGN_REGISTRY_ABI as Abi,
+          functionName: 'getCampaign',
+          args: campaignId ? [campaignId] : undefined,
+          chainId: ethereumSepolia.id,
+        },
+        {
+          address: baseContracts?.campaignRegistry,
+          abi: CAMPAIGN_REGISTRY_ABI as Abi,
+          functionName: 'getCampaign',
+          args: campaignId ? [campaignId] : undefined,
+          chainId: baseSepolia.id,
+        },
+      ],
       query: {
-        enabled: !!registryAddress && registryAddress !== '0x' && !!campaignId,
+        enabled:
+          !!campaignId &&
+          (!!ethereumContracts?.campaignRegistry || !!baseContracts?.campaignRegistry),
+        select: (data) => {
+          // Find which chain has the campaign (check if exists field is true)
+          const ethResult = data[0]?.result as CampaignConfig | undefined
+          const baseResult = data[1]?.result as CampaignConfig | undefined
+
+          // Return campaign data and chainId where it exists
+          if (ethResult?.exists) {
+            return { campaign: ethResult, chainId: ethereumSepolia.id }
+          } else if (baseResult?.exists) {
+            return { campaign: baseResult, chainId: baseSepolia.id }
+          }
+          return { campaign: undefined, chainId: undefined }
+        },
       },
     })
+
+    return results
   }
 
   // Get all campaigns (fetches details for all IDs)

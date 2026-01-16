@@ -17,6 +17,7 @@ export function CampaignHero({ coverImageUrl, logoUrl, campaignName }: CampaignH
             src={coverImageUrl}
             alt={campaignName || 'Campaign cover'}
             fill
+            sizes="100vw"
             className="object-cover"
             priority
           />

@@ -62,7 +62,9 @@ export function CampaignCard({
   const contracts = getContracts(activeChainId)
 
   const { useGetCampaign, getMetadataCID } = useCampaign()
-  const { data: campaign } = useGetCampaign(campaignId)
+  const { data: campaignQueryResult } = useGetCampaign(campaignId)
+  const campaign = campaignQueryResult?.campaign
+  const campaignChainId = campaignQueryResult?.chainId
   const { strategies } = useAaveAPY()
 
   const campaignData = campaign as
@@ -85,11 +87,11 @@ export function CampaignCard({
       ? campaignData.vault
       : fallbackVault
 
-  // Fetch TVL from campaign vault
-  const { totalAssets } = useCampaignVault(vaultAddress)
+  // Fetch TVL from campaign vault - use the campaign's chain
+  const { totalAssets } = useCampaignVault(vaultAddress, campaignChainId)
 
-  // Get APY for the campaign's strategy
-  const selectedNetwork = activeChainId === ethereumSepolia.id ? 'eth-sepolia' : 'base-sepolia'
+  // Use campaign's chain for network selection to get correct APY
+  const selectedNetwork = campaignChainId === ethereumSepolia.id ? 'eth-sepolia' : 'base-sepolia'
   const strategyAsset = isEth ? 'WETH' : 'USDC'
 
   const apy = useMemo(() => {

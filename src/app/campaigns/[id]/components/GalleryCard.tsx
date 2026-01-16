@@ -29,6 +29,7 @@ export function GalleryCard({ galleryImages }: GalleryCardProps) {
                 src={getGatewayUrl(parseCID(imageCid))}
                 alt={`Image ${index + 1}`}
                 fill
+                sizes="(max-width: 640px) 33vw, 25vw"
                 className="object-cover group-hover:scale-105 transition-transform"
               />
             </div>
