@@ -28,6 +28,9 @@ export interface CampaignMetadata {
     title: string
     description: string
     targetAmount: string
+    deliverables?: string
+    startDate?: string
+    endDate?: string
   }[]
   socialLinks?: {
     website?: string

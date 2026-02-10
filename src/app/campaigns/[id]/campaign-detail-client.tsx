@@ -182,12 +182,10 @@ export function CampaignDetailClient({ campaignId }: CampaignDetailClientProps) 
     let cancelled = false
     const fetchPrice = async () => {
       try {
-        const res = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
-        )
+        const res = await fetch('/api/eth-price')
         const json = await res.json()
-        if (!cancelled && json?.ethereum?.usd) {
-          setEthPriceUsd(Number(json.ethereum.usd))
+        if (!cancelled && json?.usd) {
+          setEthPriceUsd(Number(json.usd))
           setEthPriceStale(false)
         }
       } catch (err) {

@@ -99,7 +99,7 @@ export interface FormStep {
 export const FORM_STEPS: FormStep[] = [
   { id: 1, title: 'Basic Info', description: 'Campaign details', icon: '📝' },
   { id: 2, title: 'Organization', description: 'Select your NGO', icon: '🏢' },
-  { id: 3, title: 'Strategy & Target', description: 'Yield strategy', icon: '📈' },
+  { id: 3, title: 'Strategy + Target', description: 'Yield strategy', icon: '📈' },
   { id: 4, title: 'Milestones', description: 'Progress checkpoints', icon: '🎯' },
   { id: 5, title: 'Images', description: 'Campaign visuals', icon: '🖼️' },
   { id: 6, title: 'Review', description: 'Confirm & submit', icon: '✅' },

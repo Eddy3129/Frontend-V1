@@ -43,12 +43,10 @@ export function CampaignsClient() {
   useEffect(() => {
     const fetchPrice = async () => {
       try {
-        const res = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
-        )
+        const res = await fetch('/api/eth-price')
         const json = await res.json()
-        if (json?.ethereum?.usd) {
-          setEthPriceUsd(Number(json.ethereum.usd))
+        if (json?.usd) {
+          setEthPriceUsd(Number(json.usd))
         }
       } catch (err) {
         console.error('Failed to fetch ETH price', err)

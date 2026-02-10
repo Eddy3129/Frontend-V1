@@ -39,6 +39,7 @@ export function CheckpointVoteCard({
 
   const {
     checkpoint,
+    checkpointExists,
     isCheckpointLoading,
     useGetUserVotingPower,
     voteOnCheckpoint,
@@ -100,7 +101,8 @@ export function CheckpointVoteCard({
     }
   }
 
-  if (isCheckpointLoading || !checkpoint) {
+  // Loading state
+  if (isCheckpointLoading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -108,6 +110,22 @@ export function CheckpointVoteCard({
             <div className="h-4 bg-muted rounded w-3/4" />
             <div className="h-3 bg-muted rounded w-1/2" />
           </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Not scheduled state
+  if (!checkpointExists || !checkpoint) {
+    return (
+      <Card className="border-dashed border-2 border-muted">
+        <CardContent className="p-6 text-center space-y-2">
+          <Clock className="h-8 w-8 mx-auto text-muted-foreground/50" />
+          <h4 className="font-semibold text-sm">{title}</h4>
+          <p className="text-xs text-muted-foreground">
+            This checkpoint has not been scheduled yet. The campaign admin will schedule it when the
+            milestone is ready for review.
+          </p>
         </CardContent>
       </Card>
     )

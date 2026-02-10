@@ -83,6 +83,16 @@ export function useCheckpointVoting(
     } as CheckpointData
   }, [checkpointData])
 
+  // Check if checkpoint exists on-chain
+  const checkpointExists = useMemo(() => {
+    if (isCheckpointLoading) return undefined // still unknown
+    if (!checkpointData || !Array.isArray(checkpointData)) return false
+    // A zeroed-out checkpoint means it doesn't exist on-chain
+    const windowStart = checkpointData[0] as bigint
+    const windowEnd = checkpointData[1] as bigint
+    return windowStart !== 0n || windowEnd !== 0n
+  }, [checkpointData, isCheckpointLoading])
+
   // Get user's stake position to calculate voting power
   const useGetUserVotingPower = (userAddress?: Address) => {
     const {
@@ -233,6 +243,7 @@ export function useCheckpointVoting(
   return {
     // Checkpoint data
     checkpoint,
+    checkpointExists,
     isCheckpointLoading,
     refetchCheckpoint,
 

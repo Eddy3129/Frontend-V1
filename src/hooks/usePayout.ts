@@ -89,6 +89,19 @@ export function usePayout() {
     })
   }
 
+  // Get campaign totals (payouts and protocol fees)
+  const useGetCampaignTotals = (campaignId?: `0x${string}`) => {
+    return useReadContract({
+      address: routerAddress,
+      abi: PAYOUT_ROUTER_ABI,
+      functionName: 'getCampaignTotals',
+      args: campaignId ? [campaignId] : undefined,
+      query: {
+        enabled: !!routerAddress && routerAddress !== '0x' && !!campaignId,
+      },
+    })
+  }
+
   // Write: Set vault preference
   const {
     writeContract: setPreferenceWrite,
@@ -158,6 +171,7 @@ export function usePayout() {
     // Read hooks
     useGetUserPreference,
     useGetAccumulatedYield,
+    useGetCampaignTotals,
 
     // Set preference
     setVaultPreference,
