@@ -11,31 +11,25 @@ const footerLinks = {
     { label: 'NGOs', href: '/ngos' },
   ],
   resources: [
-    { label: 'Documentation', href: '/docs', external: true },
+    { label: 'Documentation', href: '/docs' },
     {
       label: 'Smart Contracts',
-      href: 'https://github.com/give-protocol',
+      href: 'https://github.com/GIVE-Labs/give-protocol-v1',
       external: true,
     },
-    { label: 'Audit Reports', href: '/audits', external: true },
+    { label: 'Audit Reports', href: '/' },
     { label: 'FAQ', href: '/faq' },
   ],
   community: [
     {
       label: 'Twitter',
-      href: 'https://twitter.com/giveprotocol',
+      href: 'https://x.com/GIVE_Labs',
       icon: Twitter,
       external: true,
     },
     {
-      label: 'Discord',
-      href: 'https://discord.gg/giveprotocol',
-      icon: MessageCircle,
-      external: true,
-    },
-    {
       label: 'GitHub',
-      href: 'https://github.com/give-protocol',
+      href: 'https://github.com/GIVE-Labs/give-protocol-v1',
       icon: Github,
       external: true,
     },

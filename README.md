@@ -106,8 +106,8 @@ src/
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-org/give-protocol-v1-frontend.git
-   cd give-protocol-v1-frontend
+   git clone https://github.com/GIVE-Labs/give-protocol-v1.git
+   cd give-protocol-v1
    ```
 
 2. **Install dependencies**
