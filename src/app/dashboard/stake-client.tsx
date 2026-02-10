@@ -466,11 +466,45 @@ export function StakeClient() {
         {/* ═══════════ NGO DASHBOARD ═══════════ */}
         {showNGOTab && (
           <TabsContent value="ngo" className="space-y-6 mt-6">
+            {/* NGO Identity Header */}
+            {ngoDashboard.ngoName && (
+              <div
+                className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 border border-border/50 opacity-0 animate-fade-in-up"
+                style={{ animationFillMode: 'forwards' }}
+              >
+                <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary/10 to-accent/10 border border-border/50">
+                  {ngoDashboard.ngoLogoUrl ? (
+                    <Image
+                      src={ngoDashboard.ngoLogoUrl}
+                      alt={ngoDashboard.ngoName}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Building2 className="h-7 w-7 text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold font-serif truncate">{ngoDashboard.ngoName}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Managing {ngoDashboard.activeCampaigns} active campaign
+                    {ngoDashboard.activeCampaigns !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Key Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <MetricCard
-                title="Total Raised"
-                value={`$${ngoDashboard.totalRaised.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                title="Total Staked"
+                value={
+                  ngoDashboard.primarySymbol === 'ETH'
+                    ? `${ngoDashboard.totalRaised.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })} ETH`
+                    : `$${ngoDashboard.totalRaised.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                }
                 icon={DollarSign}
                 iconBg="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600"
                 index={0}
@@ -496,8 +530,12 @@ export function StakeClient() {
                 title="Avg. Donation"
                 value={
                   ngoDashboard.uniqueDonors > 0
-                    ? `$${(ngoDashboard.totalRaised / ngoDashboard.uniqueDonors).toFixed(2)}`
-                    : '$0.00'
+                    ? ngoDashboard.primarySymbol === 'ETH'
+                      ? `${(ngoDashboard.totalRaised / ngoDashboard.uniqueDonors).toFixed(4)} ETH`
+                      : `$${(ngoDashboard.totalRaised / ngoDashboard.uniqueDonors).toFixed(2)}`
+                    : ngoDashboard.primarySymbol === 'ETH'
+                      ? '0 ETH'
+                      : '$0.00'
                 }
                 icon={Activity}
                 iconBg="bg-amber-100 dark:bg-amber-900/30 text-amber-600"
@@ -525,37 +563,81 @@ export function StakeClient() {
                 <CardContent className="space-y-6">
                   {ngoDashboard.campaigns.length > 0 ? (
                     ngoDashboard.campaigns.map((campaign) => (
-                      <div key={campaign.id} className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">Campaign {campaign.id.slice(0, 8)}...</span>
-                          <span className="text-muted-foreground font-bold">
-                            {campaign.payouts.toFixed(campaign.symbol === 'USDC' ? 2 : 4)}{' '}
-                            {campaign.symbol} received
-                          </span>
+                      <Link
+                        key={campaign.id}
+                        href={`/campaigns/${campaign.id}`}
+                        className="block p-4 rounded-xl border border-border/50 hover:border-primary/50 hover:bg-muted/30 transition-all group"
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Campaign Logo */}
+                          <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary/10 to-accent/10">
+                            {campaign.ngoLogo ? (
+                              <Image
+                                src={getGatewayUrl(parseCID(campaign.ngoLogo))}
+                                alt={campaign.name || 'Campaign'}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Target className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Campaign Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="min-w-0">
+                                <h4 className="font-bold text-sm group-hover:text-primary transition-colors truncate">
+                                  {campaign.name || `Campaign ${campaign.id.slice(0, 8)}...`}
+                                </h4>
+                                <span
+                                  className={cn(
+                                    'inline-flex items-center text-xs font-medium mt-0.5 px-2 py-0.5 rounded-full',
+                                    campaign.status === 3
+                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                      : campaign.status === 1
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                        : 'bg-muted text-muted-foreground'
+                                  )}
+                                >
+                                  {campaign.status === 3
+                                    ? 'Active'
+                                    : campaign.status === 1
+                                      ? 'Approved'
+                                      : 'Other'}
+                                </span>
+                              </div>
+                              <div className="text-right flex-shrink-0 ml-3">
+                                <p className="font-bold text-sm">
+                                  {campaign.totalStaked.toFixed(campaign.symbol === 'USDC' ? 2 : 4)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {campaign.symbol} staked
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-1000"
+                                  style={{
+                                    width: `${Math.min(100, campaign.totalStaked > 0 ? 60 : 0)}%`,
+                                  }}
+                                />
+                              </div>
+                              {campaign.payouts > 0 && (
+                                <span className="text-xs text-emerald-600 font-medium whitespace-nowrap">
+                                  {campaign.payouts.toFixed(campaign.symbol === 'USDC' ? 2 : 4)}{' '}
+                                  {campaign.symbol} received
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-1000 bg-emerald-500"
-                            style={{
-                              width: `${Math.min(100, (campaign.totalStaked / Math.max(campaign.totalStaked, 1)) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>
-                            {campaign.totalStaked.toFixed(campaign.symbol === 'USDC' ? 2 : 4)}{' '}
-                            {campaign.symbol} staked
-                          </span>
-                          <span>
-                            Status:{' '}
-                            {campaign.status === 3
-                              ? 'Active'
-                              : campaign.status === 1
-                                ? 'Approved'
-                                : 'Other'}
-                          </span>
-                        </div>
-                      </div>
+                      </Link>
                     ))
                   ) : (
                     <div className="text-center py-12">
@@ -584,31 +666,48 @@ export function StakeClient() {
                 </CardHeader>
                 <CardContent>
                   {ngoDashboard.recentActivity.length > 0 ? (
-                    <div className="space-y-4">
-                      {ngoDashboard.recentActivity.slice(0, 5).map((activity) => {
+                    <div className="space-y-2">
+                      {ngoDashboard.recentActivity.slice(0, 6).map((activity) => {
                         const shortAddr = `${activity.supporterId.slice(0, 6)}...${activity.supporterId.slice(-4)}`
+                        const isDeposit = activity.type === 'DEPOSIT'
                         return (
                           <div
                             key={activity.id}
-                            className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                            className="flex items-center justify-between p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-xs font-bold">
-                                {activity.supporterId.charAt(2)}
+                              <div
+                                className={cn(
+                                  'w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold',
+                                  isDeposit
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600'
+                                    : 'bg-red-100 dark:bg-red-900/30 text-red-600'
+                                )}
+                              >
+                                {isDeposit ? (
+                                  <ArrowUpRight className="h-4 w-4" />
+                                ) : (
+                                  <ArrowDownRight className="h-4 w-4" />
+                                )}
                               </div>
                               <div>
                                 <p className="text-sm font-bold font-mono">{shortAddr}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  {activity.type === 'DEPOSIT' ? 'Staked' : 'Withdrew'}
+                                  {isDeposit ? 'Staked' : 'Withdrew'}
                                 </p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <span className="text-sm font-bold text-emerald-600 block">
+                              <span
+                                className={cn(
+                                  'text-sm font-bold block',
+                                  isDeposit ? 'text-emerald-600' : 'text-red-500'
+                                )}
+                              >
                                 {formatActivityAmount(
                                   activity.amount,
                                   activity.campaignId,
-                                  donorDashboard.campaignDecimals
+                                  ngoDashboard.campaignDecimals
                                 )}
                               </span>
                               <span className="text-xs text-muted-foreground">
