@@ -6,7 +6,9 @@
       "Bash(pnpm lint:*)",
       "Bash(pnpm type-check:*)",
       "Bash(npx tsc:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }
